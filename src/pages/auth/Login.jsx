@@ -1,6 +1,8 @@
+// src/pages/auth/Login.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { authUsers } from '../../mockData';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -11,19 +13,28 @@ function Login() {
   const handleLogin = (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Giả lập đăng nhập
+
+    // Tìm user trong dữ liệu mẫu
+    const user = authUsers.find(user => user.email === email && user.password === password);
+
     setTimeout(() => {
-      if (email === 'admin@snaplink.com' && password === '12345') {
+      if (user) {
         // Lưu thông tin đăng nhập vào localStorage
-        localStorage.setItem('user', JSON.stringify({ 
-          name: 'Admin User', 
-          email, 
-          role: 'admin' 
+        localStorage.setItem('user', JSON.stringify({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
         }));
-        
+
         toast.success('Đăng nhập thành công!');
-        navigate('/admin');
+
+        // Chuyển hướng dựa vào vai trò
+        if (user.role === 'admin') {
+          navigate('/admin');
+        } else if (user.role === 'moderator') {
+          navigate('/moderator');
+        }
       } else {
         toast.error('Email hoặc mật khẩu không đúng!');
       }
@@ -35,7 +46,7 @@ function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <h1 className="text-2xl font-bold text-center mb-6">Đăng nhập SnapLink</h1>
-        
+
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2" htmlFor="email">Email</label>
@@ -49,7 +60,7 @@ function Login() {
               required
             />
           </div>
-          
+
           <div className="mb-6">
             <label className="block text-gray-700 mb-2" htmlFor="password">Mật khẩu</label>
             <input
@@ -62,7 +73,7 @@ function Login() {
               required
             />
           </div>
-          
+
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
@@ -71,9 +82,11 @@ function Login() {
             {loading ? 'Đang xử lý...' : 'Đăng nhập'}
           </button>
         </form>
-        
+
         <div className="mt-4 text-center text-sm text-gray-600">
-          <p>Tài khoản demo: admin@snaplink.com / password</p>
+          <p className="mb-1">Tài khoản demo:</p>
+          <p>Admin: admin@snaplink.com / password</p>
+          <p>Moderator: moderator@snaplink.com / password</p>
         </div>
       </div>
     </div>
