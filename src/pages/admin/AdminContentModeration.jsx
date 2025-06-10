@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { contents } from '../../mockData';
+import { useState, useEffect } from "react";
+import { contents } from "../../mockData";
 
 function ContentModeration() {
   const [contentList, setContentList] = useState([]);
@@ -44,38 +44,64 @@ function ContentModeration() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {contentList.map(content => (
+              {contentList.map((content) => (
                 <tr key={content.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{content.title}</div>
-                    <div className="text-sm text-gray-500">{content.description}</div>
+                    <div className="font-medium text-gray-900">
+                      {content.title}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {content.description}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium">{content.user.name}</div>
-                    <div className="text-sm text-gray-500">{content.user.email}</div>
+                    <div className="text-sm font-medium">
+                      {content.user.name}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {content.user.email}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {content.type === 'photographer_profile' ? 'Hồ sơ nhiếp ảnh gia' :
-                        content.type === 'venue_photos' ? 'Ảnh địa điểm' : 'Bộ sưu tập ảnh'}
+                      {content.type === "photographer_profile"
+                        ? "Hồ sơ nhiếp ảnh gia"
+                        : content.type === "venue_photos"
+                        ? "Ảnh địa điểm"
+                        : "Bộ sưu tập ảnh"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                      ${content.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        content.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'}`}>
-                      {content.status === 'approved' ? 'Đã duyệt' :
-                        content.status === 'rejected' ? 'Đã từ chối' : 'Chờ duyệt'}
+                    <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                      ${
+                        content.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : content.status === "rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {content.status === "approved"
+                        ? "Đã duyệt"
+                        : content.status === "rejected"
+                        ? "Đã từ chối"
+                        : "Chờ duyệt"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Xem</button>
+                    <button className="text-blue-600 hover:text-blue-900 mr-3">
+                      Xem
+                    </button>
 
-                    {content.status === 'pending' && (
+                    {content.status === "pending" && (
                       <>
-                        <button className="text-green-600 hover:text-green-900 mr-3">Duyệt</button>
-                        <button className="text-red-600 hover:text-red-900">Từ chối</button>
+                        <button className="text-green-600 hover:text-green-900 mr-3">
+                          Duyệt
+                        </button>
+                        <button className="text-red-600 hover:text-red-900">
+                          Từ chối
+                        </button>
                       </>
                     )}
                   </td>
