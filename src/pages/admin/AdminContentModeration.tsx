@@ -1,13 +1,15 @@
-// pages/admin/ContentModeration.tsx
 import React, { useState, useEffect } from "react";
 import { mockContents, type ContentModeration } from "../../mocks/content";
+import ContentDetailModal from "../../components/admin/modals/ContentDetailModal";
 
 const ContentModeration: React.FC = () => {
   const [contentList, setContentList] = useState<ContentModeration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContent, setSelectedContent] =
+    useState<ContentModeration | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // Simulate API call
     setTimeout(() => {
       setContentList(mockContents);
       setLoading(false);
@@ -27,19 +29,6 @@ const ContentModeration: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: ContentModeration["status"]): string => {
-    switch (status) {
-      case "approved":
-        return "Đã duyệt";
-      case "rejected":
-        return "Đã từ chối";
-      case "pending":
-        return "Chờ duyệt";
-      default:
-        return "Không xác định";
-    }
-  };
-
   const getStatusColor = (status: ContentModeration["status"]): string => {
     switch (status) {
       case "approved":
@@ -51,6 +40,11 @@ const ContentModeration: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleViewContent = (content: ContentModeration) => {
+    setSelectedContent(content);
+    setShowModal(true);
   };
 
   const handleApprove = (id: number) => {
@@ -129,14 +123,20 @@ const ContentModeration: React.FC = () => {
                         content.status
                       )}`}
                     >
-                      {getStatusLabel(content.status)}
+                      {content.status === "approved"
+                        ? "Đã duyệt"
+                        : content.status === "rejected"
+                        ? "Đã từ chối"
+                        : "Chờ duyệt"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">
+                    <button
+                      onClick={() => handleViewContent(content)}
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                    >
                       Xem
                     </button>
-
                     {content.status === "pending" && (
                       <>
                         <button
@@ -160,8 +160,16 @@ const ContentModeration: React.FC = () => {
           </table>
         </div>
       )}
+
+      {/* Content Detail Modal */}
+      <ContentDetailModal
+        content={selectedContent}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 };
-
 export default ContentModeration;

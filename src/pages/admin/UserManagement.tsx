@@ -1,22 +1,22 @@
-// pages/admin/UserManagement.tsx
 import React, { useState, useEffect } from "react";
 import { Search, User } from "lucide-react";
 import { mockUsers, type User as UserType } from "../../mocks/users";
+import UserDetailModal from "../../components/admin/modals/UserDetailModal";
 
 const UserManagement: React.FC = () => {
   const [userList, setUserList] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // Simulate API call
     setTimeout(() => {
       setUserList(mockUsers);
       setLoading(false);
     }, 500);
   }, []);
 
-  // Filter users based on search term
   const filteredUsers = userList.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,19 +40,6 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: UserType["status"]): string => {
-    switch (status) {
-      case "active":
-        return "Hoạt động";
-      case "inactive":
-        return "Bị khóa";
-      case "pending":
-        return "Chờ xác nhận";
-      default:
-        return "Không xác định";
-    }
-  };
-
   const getStatusColor = (status: UserType["status"]): string => {
     switch (status) {
       case "active":
@@ -64,6 +51,11 @@ const UserManagement: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleViewUser = (user: UserType) => {
+    setSelectedUser(user);
+    setShowModal(true);
   };
 
   const handleToggleStatus = (id: number) => {
@@ -94,7 +86,6 @@ const UserManagement: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
         <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
           Thêm người dùng
         </button>
@@ -153,11 +144,18 @@ const UserManagement: React.FC = () => {
                         user.status
                       )}`}
                     >
-                      {getStatusLabel(user.status)}
+                      {user.status === "active"
+                        ? "Hoạt động"
+                        : user.status === "inactive"
+                        ? "Bị khóa"
+                        : "Chờ xác nhận"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">
+                    <button
+                      onClick={() => handleViewUser(user)}
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                    >
                       Xem
                     </button>
                     <button className="text-yellow-600 hover:text-yellow-900 mr-3">
@@ -182,6 +180,13 @@ const UserManagement: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        user={selectedUser}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </div>
   );
 };
