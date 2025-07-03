@@ -96,17 +96,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="text-center text-sm text-gray-600">
-            <p className="font-medium mb-2">Tài khoản demo:</p>
-            <div className="space-y-1">
-              <p>
-                <span className="font-medium">Admin:</span> admin@snaplink.com /
-                password
-              </p>
-              <p>
-                <span className="font-medium">Moderator:</span>{" "}
-                moderator@snaplink.com / password
-              </p>
-            </div>
+            <p className="mb-2">Liên hệ admin để nhận thông tin đăng nhập</p>
+            <p className="text-xs text-gray-500">
+              Hệ thống quản trị chỉ dành cho admin và moderator
+            </p>
           </div>
         </div>
       </div>

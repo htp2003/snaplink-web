@@ -12,10 +12,14 @@ const Login: React.FC = () => {
   // Check if user is already logged in
   useEffect(() => {
     const user = authService.getCurrentUser();
-    if (user) {
+    if (user && authService.isTokenValid()) {
       // Redirect to appropriate dashboard
       const redirectPath = user.role === "admin" ? "/admin" : "/moderator";
       navigate(redirectPath, { replace: true });
+    } else if (user) {
+      // Token expired, clear storage
+      authService.logout();
+      toast.error("Phiên đăng nhập đã hết hạn!");
     }
   }, [navigate]);
 
@@ -30,7 +34,7 @@ const Login: React.FC = () => {
         authService.saveUser(response.user);
 
         // Show success message
-        toast.success("Đăng nhập thành công!");
+        toast.success(`Chào mừng ${response.user.name}!`);
 
         // Redirect based on role
         const redirectPath =
