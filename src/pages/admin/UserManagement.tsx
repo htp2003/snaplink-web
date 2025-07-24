@@ -61,26 +61,218 @@ const UserManagement: React.FC = () => {
   const [deletingUser, setDeletingUser] = useState<SimpleUser | null>(null);
   const [showToggleModal, setShowToggleModal] = useState(false);
   const [togglingUser, setTogglingUser] = useState<SimpleUser | null>(null);
+  const [needsRoleEnrichment, setNeedsRoleEnrichment] = useState(false);
 
-  // Helper functions for user roles (updated for new API format)
+  const loadUsers = async (roleFilter?: string) => {
+    try {
+      setLoading(true);
+      const token = authService.getToken();
+
+      let endpoint = "";
+      let usersArray: SimpleUser[] = [];
+
+      if (!roleFilter || roleFilter === "all") {
+        // For "all" - we need to get all users but their roles won't be populated
+        endpoint = "/api/User/all";
+
+        const response = await fetch(
+          `https://snaplinkapi-g7eubeghazh5byd8.southeastasia-01.azurewebsites.net${endpoint}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Handle .NET serialization format
+        if (data?.$values && Array.isArray(data.$values)) {
+          usersArray = data.$values;
+        } else if (Array.isArray(data)) {
+          usersArray = data;
+        } else {
+          throw new Error("Invalid API response format");
+        }
+
+        // Set flag to enrich roles later
+        setNeedsRoleEnrichment(true);
+      } else {
+        // For specific role filter - use by-role API which includes roles
+        const roleMapping: Record<string, string> = {
+          admin: "admin",
+          moderator: "moderator",
+          photographer: "photographer",
+          "venue owner": "locationowner",
+          user: "user",
+        };
+
+        const apiRoleName = roleMapping[roleFilter.toLowerCase()] || roleFilter;
+        endpoint = `/api/User/by-role/${apiRoleName}`;
+
+        const response = await fetch(
+          `https://snaplinkapi-g7eubeghazh5byd8.southeastasia-01.azurewebsites.net${endpoint}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error(`No users found with role "${roleFilter}"`);
+            setUserList([]);
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        usersArray = Array.isArray(data) ? data : [];
+
+        // Roles are already included from by-role API
+        setNeedsRoleEnrichment(false);
+      }
+
+      console.log("✅ Loaded users:", usersArray.length);
+      setUserList([...usersArray]);
+
+      // If we loaded all users without roles, enrich them
+      if (needsRoleEnrichment && (!roleFilter || roleFilter === "all")) {
+        enrichUsersWithRoles(usersArray);
+      }
+
+      toast.success(`Loaded ${usersArray.length} users successfully!`);
+    } catch (error) {
+      console.error("💥 API Error:", error);
+      toast.error("Failed to load users");
+      setUserList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Function to enrich users with their roles
+  const enrichUsersWithRoles = async (users: SimpleUser[]) => {
+    try {
+      const token = authService.getToken();
+
+      // Get all possible roles
+      const roleTypes = [
+        "admin",
+        "moderator",
+        "photographer",
+        "locationowner",
+        "user",
+      ];
+      const rolePromises = roleTypes.map(async (role) => {
+        try {
+          const response = await fetch(
+            `https://snaplinkapi-g7eubeghazh5byd8.southeastasia-01.azurewebsites.net/api/User/by-role/${role}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            return { role, users: Array.isArray(data) ? data : [] };
+          }
+          return { role, users: [] };
+        } catch {
+          return { role, users: [] };
+        }
+      });
+
+      const roleResults = await Promise.all(rolePromises);
+
+      // Create a map of userId -> roles
+      const userRolesMap = new Map<number, string[]>();
+
+      roleResults.forEach(({ role, users: roleUsers }) => {
+        roleUsers.forEach((user: any) => {
+          if (!userRolesMap.has(user.userId)) {
+            userRolesMap.set(user.userId, []);
+          }
+
+          // Convert role name to display format
+          const displayRole =
+            role === "locationowner"
+              ? "Venue Owner"
+              : role.charAt(0).toUpperCase() + role.slice(1);
+
+          const existingRoles = userRolesMap.get(user.userId) || [];
+          if (!existingRoles.includes(displayRole)) {
+            existingRoles.push(displayRole);
+          }
+          userRolesMap.set(user.userId, existingRoles);
+        });
+      });
+
+      // Update users with their roles
+      const enrichedUsers = users.map((user) => ({
+        ...user,
+        roles: userRolesMap.get(user.userId) || ["User"],
+      }));
+
+      console.log("✅ Enriched users with roles");
+      setUserList(enrichedUsers);
+      setNeedsRoleEnrichment(false);
+    } catch (error) {
+      console.error("Error enriching user roles:", error);
+      // If enrichment fails, keep users as-is
+    }
+  };
+
+  // IMPROVED: Better getUserRoles function
   const getUserRoles = (user: SimpleUser): string[] => {
-    // New API format has roles.$values array
-    if (user.roles?.$values && Array.isArray(user.roles.$values)) {
-      return user.roles.$values;
+    // Method 1: Direct roles array (from /api/User/by-role/{roleName} or enriched)
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.map((role: any) =>
+        typeof role === "string" ? role : role.name || role
+      );
     }
 
-    // Fallback to navigation properties (old format)
+    // Method 2: Check navigation properties (fallback for /api/User/all)
     const roles: string[] = [];
-    if (user.administrators?.$values?.length > 0) roles.push("Admin");
-    if (user.moderators?.$values?.length > 0) roles.push("Moderator");
-    if (user.photographers?.$values?.length > 0) roles.push("Photographer");
-    if (user.locationOwners?.$values?.length > 0) roles.push("Venue Owner");
 
-    // If no specific roles, default to User
-    if (roles.length === 0) roles.push("User");
+    if (user.administrators?.length > 0) roles.push("Admin");
+    if (user.moderators?.length > 0) roles.push("Moderator");
+    if (user.photographers?.length > 0) roles.push("Photographer");
+    if (user.locationOwners?.length > 0) roles.push("Venue Owner");
+    if (user.userRoles?.length > 0) {
+      user.userRoles.forEach((userRole: any) => {
+        if (userRole.role?.name) {
+          roles.push(userRole.role.name);
+        }
+      });
+    }
 
-    return roles;
+    return roles.length > 0 ? roles : ["User"];
   };
+
+  // IMPROVED: Role filter change handler
+  const handleRoleFilterChange = (newRole: string) => {
+    console.log("🎭 Role filter changed to:", newRole);
+    setRoleFilter(newRole);
+    setNeedsRoleEnrichment(false); // Reset enrichment flag
+    loadUsers(newRole === "all" ? undefined : newRole);
+  };
+
+  useEffect(() => {
+    console.log("🚀 Component mounted, loading users...");
+    loadUsers();
+  }, []);
 
   const getRoleBadgeColor = (role: string): string => {
     switch (role) {
@@ -122,111 +314,18 @@ const UserManagement: React.FC = () => {
     return "User";
   };
 
-  // Direct API call without service wrapper
-  const loadUsers = async (roleFilter?: string) => {
-    try {
-      setLoading(true);
-      const token = authService.getToken();
-
-      let endpoint = "";
-
-      // Sử dụng đúng endpoint dựa vào role filter
-      if (!roleFilter || roleFilter === "all") {
-        endpoint = "/api/User/all";
-      } else {
-        // Map UI role names to API role names (confirmed lowercase works)
-        const roleMapping: Record<string, string> = {
-          admin: "admin",
-          moderator: "moderator",
-          photographer: "photographer",
-          "venue owner": "locationowner", // Cần test - có thể là "venue_owner"
-          user: "user",
-        };
-
-        const apiRoleName = roleMapping[roleFilter.toLowerCase()] || roleFilter;
-        endpoint = `/api/User/by-role/${apiRoleName}`;
-      }
-
-      console.log("🔗 Calling endpoint:", endpoint);
-
-      const response = await fetch(
-        `https://snaplinkapi-g7eubeghazh5byd8.southeastasia-01.azurewebsites.net${endpoint}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("📡 Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ API Error:", response.status, errorText);
-
-        if (response.status === 404 && roleFilter && roleFilter !== "all") {
-          toast.error(
-            `Role "${roleFilter}" not found or no users with this role.`
-          );
-          setUserList([]);
-          return;
-        } else {
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-      }
-
-      const data = await response.json();
-      console.log("📥 Raw API response:", data);
-
-      // Parse response data (same logic as before)
-      let usersArray: SimpleUser[] = [];
-
-      if (Array.isArray(data)) {
-        usersArray = data;
-      } else if (data?.$values && Array.isArray(data.$values)) {
-        usersArray = data.$values;
-      } else if (data?.data && Array.isArray(data.data)) {
-        usersArray = data.data;
-      } else if (data?.users && Array.isArray(data.users)) {
-        usersArray = data.users;
-      } else {
-        console.log("❌ Unknown response format:", data);
-        throw new Error("Invalid API response format");
-      }
-
-      console.log("✅ Parsed users:", usersArray.length);
-      setUserList([...usersArray]);
-      toast.success(`Loaded ${usersArray.length} users successfully!`);
-    } catch (error) {
-      console.error("💥 API Error:", error);
-      toast.error("Failed to load users");
-      setUserList([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     console.log("🚀 Component mounted, loading users...");
     loadUsers();
   }, []);
 
   // Reload users when role filter changes
-  useEffect(() => {
-    if (roleFilter !== "all") {
-      console.log("🎭 Role filter changed to:", roleFilter);
-      loadUsers(roleFilter);
-    }
-  }, [roleFilter]);
-
-  const handleRoleFilterChange = (newRole: string) => {
-    setRoleFilter(newRole);
-    if (newRole === "all") {
-      loadUsers(); // Load all users
-    }
-    // For specific roles, useEffect will trigger loadUsers(roleFilter)
-  };
+  // useEffect(() => {
+  //   if (roleFilter !== "all") {
+  //     console.log("🎭 Role filter changed to:", roleFilter);
+  //     loadUsers(roleFilter);
+  //   }
+  // }, [roleFilter]);
 
   // Filter and sort users (simplified since role filtering now done by API)
   const filteredAndSortedUsers = (() => {
@@ -281,17 +380,39 @@ const UserManagement: React.FC = () => {
   })();
 
   // Role statistics
-  const roleStats = {
-    admin: userList.filter((u) => getUserRoles(u).includes("Admin")).length,
-    moderator: userList.filter((u) => getUserRoles(u).includes("Moderator"))
-      .length,
-    photographer: userList.filter((u) =>
-      getUserRoles(u).includes("Photographer")
-    ).length,
-    venueOwner: userList.filter((u) => getUserRoles(u).includes("Venue Owner"))
-      .length,
-    user: userList.filter((u) => getPrimaryRole(u) === "User").length,
-  };
+  const roleStats = (() => {
+    if (userList.length === 0) {
+      return {
+        admin: 0,
+        moderator: 0,
+        photographer: 0,
+        venueOwner: 0,
+        user: 0,
+      };
+    }
+
+    // Count users by their primary role
+    const stats = {
+      admin: 0,
+      moderator: 0,
+      photographer: 0,
+      venueOwner: 0,
+      user: 0,
+    };
+
+    userList.forEach((user) => {
+      const roles = getUserRoles(user);
+
+      // Count based on roles priority
+      if (roles.includes("Admin")) stats.admin++;
+      else if (roles.includes("Moderator")) stats.moderator++;
+      else if (roles.includes("Photographer")) stats.photographer++;
+      else if (roles.includes("Venue Owner")) stats.venueOwner++;
+      else stats.user++;
+    });
+
+    return stats;
+  })();
 
   // Log current state
   console.log("🎨 RENDER - Current state:");
