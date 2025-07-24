@@ -68,8 +68,7 @@ class AuthService {
             id: parseInt(userInfo.nameid), // nameid từ JWT
             name: userInfo.name || "Unknown",
             email: "", // Sẽ được cập nhật sau
-            role:
-              userInfo.role?.toLowerCase() === "admin" ? "admin" : "moderator",
+            role: userInfo.role === "Admin" ? "admin" : "moderator", // Ánh xạ "Admin" thành "admin"
           };
 
           // Try to get user details including email from API
@@ -192,8 +191,16 @@ class AuthService {
       );
 
       const payload = JSON.parse(jsonPayload);
+      console.log("JWT Payload:", payload); // Log để kiểm tra
 
-      // JWT claims mapping
+      // Xử lý mảng role, ưu tiên "Admin"
+      const roles =
+        payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+      const role =
+        Array.isArray(roles) && roles.includes("Admin")
+          ? "Admin"
+          : roles?.[0] || "moderator";
+
       return {
         nameid:
           payload[
@@ -202,9 +209,7 @@ class AuthService {
         name: payload[
           "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
         ],
-        role: payload[
-          "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-        ],
+        role: role,
         exp: payload.exp,
         iss: payload.iss,
         aud: payload.aud,

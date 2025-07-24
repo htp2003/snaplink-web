@@ -1,47 +1,41 @@
-// pages/auth/Login.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { authService } from "../../services/authService";
 import LoginForm from "../../components/auth/LoginForm";
+import { useAuth } from "../../hooks/useAuth";
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user, logout } = useAuth(); // Sử dụng logout từ useAuth
 
   // Check if user is already logged in
   useEffect(() => {
-    const user = authService.getCurrentUser();
     if (user && authService.isTokenValid()) {
-      // Redirect to appropriate dashboard
       const redirectPath = user.role === "admin" ? "/admin" : "/moderator";
       navigate(redirectPath, { replace: true });
     } else if (user) {
-      // Token expired, clear storage
-      authService.logout();
+      // Token expired, clear storage and logout
+      logout(); // Gọi logout từ useAuth
       toast.error("Phiên đăng nhập đã hết hạn!");
     }
-  }, [navigate]);
+  }, [user, navigate, logout]);
 
   const handleLogin = async (email: string, password: string) => {
     setLoading(true);
 
     try {
       const response = await authService.login({ email, password });
+      console.log("Login Response:", response);
 
       if (response.success && response.user) {
-        // Save user to localStorage
         authService.saveUser(response.user);
-
-        // Show success message
         toast.success(`Chào mừng ${response.user.name}!`);
-
-        // Redirect based on role
         const redirectPath =
           response.user.role === "admin" ? "/admin" : "/moderator";
         navigate(redirectPath, { replace: true });
       } else {
-        // Show error message
         toast.error(response.message || "Đăng nhập thất bại!");
       }
     } catch (error) {
@@ -50,6 +44,12 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Thêm hàm logout để gọi từ component khác nếu cần
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true }); // Chuyển hướng ngay lập tức
   };
 
   return <LoginForm onSubmit={handleLogin} loading={loading} />;

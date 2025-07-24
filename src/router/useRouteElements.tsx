@@ -16,7 +16,7 @@ import Login from "../pages/auth/Login";
 // Admin pages
 import Dashboard from "../pages/admin/Dashboard";
 import UserManagement from "../pages/admin/UserManagement";
-import ContentModeration from "../pages/admin/AdminContentModeration";
+import ContentModeration from "../pages/admin/ContentModeration";
 import BookingManagement from "../pages/admin/BookingManagement";
 import TransactionManagement from "../pages/admin/TransactionManagement";
 import Settings from "../pages/admin/Settings";

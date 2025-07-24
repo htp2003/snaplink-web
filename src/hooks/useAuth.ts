@@ -1,23 +1,23 @@
-// hooks/useAuth.ts
-import { useState, useEffect } from 'react';
-import { User } from '../types/auth.types';
+import { useState, useEffect } from "react";
+import { authService } from "../services/authService";
+import { User } from "../types/auth.types";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication status on app load
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const userJson = localStorage.getItem('user');
-        if (userJson) {
-          const userData = JSON.parse(userJson) as User;
-          setUser(userData);
+        const currentUser = authService.getCurrentUser();
+        if (currentUser && authService.isTokenValid()) {
+          setUser(currentUser);
+        } else {
+          setUser(null);
         }
       } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('user');
+        console.error("Error checking auth:", error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -25,15 +25,14 @@ export const useAuth = () => {
 
     checkAuth();
 
-    // Listen for storage changes (multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user') {
+      if (e.key === "user") {
         if (e.newValue) {
           try {
             const userData = JSON.parse(e.newValue) as User;
             setUser(userData);
           } catch (error) {
-            console.error('Error parsing user data from storage:', error);
+            console.error("Error parsing user data from storage:", error);
             setUser(null);
           }
         } else {
@@ -42,18 +41,18 @@ export const useAuth = () => {
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const login = (userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData));
+    authService.saveUser(userData);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
+    authService.logout();
+    setUser(null); // Cập nhật trạng thái ngay lập tức
   };
 
   return {
@@ -61,6 +60,6 @@ export const useAuth = () => {
     isAuthenticated: !!user,
     isLoading,
     login,
-    logout
+    logout,
   };
 };
