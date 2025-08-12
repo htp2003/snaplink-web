@@ -1,11 +1,23 @@
 // types/auth.types.ts
 export interface User {
-  id: string;
-  email: string;
+  id: number;
   name: string;
-  role: 'admin' | 'moderator';
+  email: string;
+  role: "admin" | "moderator"; // Lowercase để consistency
+  token?: string;
   avatar?: string;
-  createdAt: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  user?: User;
+  token?: string;
 }
 
 export interface AuthState {
@@ -13,3 +25,12 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
+// JWT Token Claims Constants
+export const JWT_CLAIMS = {
+  ROLE: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+  NAME: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+  NAMEIDENTIFIER:
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+  EMAIL: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+} as const;

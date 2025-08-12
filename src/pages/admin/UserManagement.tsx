@@ -9,7 +9,7 @@ import {
   useUserManagement,
   useUserFilters,
   useUserStats,
-} from "../../hooks/UserManagement.hooks";
+} from "../../hooks/admin/UserManagement.hooks";
 
 // Components
 import UserStatsSection from "../../components/admin/UserManagement/OtherComponents/UserStats";
@@ -17,7 +17,7 @@ import UserFilters from "../../components/admin/UserManagement/OtherComponents/U
 import UserTable from "../../components/admin/UserManagement/OtherComponents/UserTable";
 
 // Types
-import { SimpleUser } from "../../types/UserManagement.types";
+import { SimpleUser } from "../../types/admin/UserManagement.types";
 
 // Modals
 import UserDetailModal from "../../components/admin/UserManagement/modals/UserDetailModal";

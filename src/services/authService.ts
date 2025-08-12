@@ -1,223 +1,183 @@
 // services/authService.ts
-import { API_BASE_URL, API_ENDPOINTS } from "../config/api";
+import { LoginRequest, LoginResponse, User } from "../types/auth.types";
+import { apiClient } from "./apiClient";
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-    role: "admin" | "moderator";
-  };
-  token?: string;
-  message?: string;
-}
+const JWT_CLAIMS = {
+  ROLE: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+  NAME: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+  NAMEIDENTIFIER:
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+};
 
 class AuthService {
-  private baseUrl = API_BASE_URL;
-  private tokenKey = "auth_token";
+  private tokenKey = "token";
+  private userKey = "user";
 
-  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+  // Parse JWT token để lấy thông tin user
+  private parseJwtToken(token: string): User | null {
     try {
-      console.log("Attempting login with:", credentials.email);
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        window
+          .atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
 
-      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.LOGIN}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-        }),
-      });
+      const payload = JSON.parse(jsonPayload);
+      console.log("JWT Payload:", payload);
 
-      console.log("Login response status:", response.status);
+      // Extract user info từ JWT claims
+      const userId = parseInt(payload[JWT_CLAIMS.NAMEIDENTIFIER]) || 0;
+      const name = payload[JWT_CLAIMS.NAME] || "";
+      const role = payload[JWT_CLAIMS.ROLE] || "";
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Login failed:", errorText);
+      // Convert role từ "Admin" -> "admin", "Moderator" -> "moderator"
+      const normalizedRole = role.toLowerCase() as "admin" | "moderator";
 
-        return {
-          success: false,
-          message:
-            response.status === 401
-              ? "Email hoặc mật khẩu không đúng!"
-              : "Lỗi đăng nhập! Vui lòng thử lại.",
-        };
-      }
-
-      const data = await response.json();
-      console.log("Login response data:", data);
-
-      // Check if response contains token
-      if (data && data.token) {
-        // Save token
-        localStorage.setItem(this.tokenKey, data.token);
-
-        // Decode JWT to get user info
-        const userInfo = this.decodeJWTPayload(data.token);
-
-        if (userInfo) {
-          const user = {
-            id: parseInt(userInfo.nameid), // nameid từ JWT
-            name: userInfo.name || "Unknown",
-            email: "", // Sẽ được cập nhật sau
-            role: userInfo.role === "Admin" ? "admin" : "moderator", // Ánh xạ "Admin" thành "admin"
-          };
-
-          // Try to get user details including email from API
-          try {
-            const userDetailResponse = await fetch(
-              `${this.baseUrl}/api/User/${user.id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${data.token}`,
-                },
-              }
-            );
-
-            if (userDetailResponse.ok) {
-              const userDetail = await userDetailResponse.json();
-              user.email = userDetail.email || "unknown@example.com";
-            }
-          } catch (error) {
-            console.warn("Could not fetch user details:", error);
-            // Fallback to a default email or extract from login credentials
-            user.email = credentials.email;
-          }
-
-          return {
-            success: true,
-            user,
-            token: data.token,
-          };
-        } else {
-          return {
-            success: false,
-            message: "Không thể giải mã thông tin người dùng!",
-          };
-        }
-      } else {
-        return {
-          success: false,
-          message: "Phản hồi từ server không đúng định dạng!",
-        };
-      }
-    } catch (error) {
-      console.error("Login API error:", error);
-      return {
-        success: false,
-        message: "Lỗi kết nối server! Vui lòng kiểm tra kết nối mạng.",
+      const user: User = {
+        id: userId,
+        name: name,
+        email: "", // JWT không chứa email, có thể lấy từ response khác
+        role: normalizedRole,
+        token: token,
       };
-    }
-  }
 
-  // Save user to localStorage
-  saveUser(user: LoginResponse["user"]): void {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    }
-  }
-
-  // Get current user from localStorage
-  getCurrentUser(): LoginResponse["user"] | null {
-    try {
-      const userJson = localStorage.getItem("user");
-      return userJson ? JSON.parse(userJson) : null;
+      console.log("Parsed User:", user);
+      return user;
     } catch (error) {
-      console.error("Error parsing user data:", error);
-      this.logout();
+      console.error("Error parsing JWT token:", error);
       return null;
     }
   }
 
-  // Get token for API calls
-  getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
-  }
-
-  // Logout user
-  logout(): void {
-    localStorage.removeItem("user");
-    localStorage.removeItem(this.tokenKey);
-  }
-
-  // Check if user is authenticated
-  isAuthenticated(): boolean {
-    return !!this.getCurrentUser();
-  }
-
-  // Get user role
-  getUserRole(): "admin" | "moderator" | null {
-    const user = this.getCurrentUser();
-    return user?.role || null;
-  }
-
-  // Check if token is valid (improved with expiration check)
+  // Check if token is valid (not expired)
   isTokenValid(): boolean {
     const token = this.getToken();
     if (!token) return false;
 
     try {
-      const payload = this.decodeJWTPayload(token);
-      if (!payload) return false;
-
-      const now = Math.floor(Date.now() / 1000);
-      return payload.exp > now;
-    } catch (error) {
-      console.error("Token validation error:", error);
-      return false;
-    }
-  }
-
-  // Decode JWT payload to get user information
-  private decodeJWTPayload(token: string): any {
-    try {
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(
-        atob(base64)
+        window
+          .atob(base64)
           .split("")
-          .map(function (c) {
-            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-          })
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
           .join("")
       );
 
       const payload = JSON.parse(jsonPayload);
-      console.log("JWT Payload:", payload); // Log để kiểm tra
+      const exp = payload.exp;
+      const currentTime = Date.now() / 1000;
 
-      // Xử lý mảng role, ưu tiên "Admin"
-      const roles =
-        payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-      const role =
-        Array.isArray(roles) && roles.includes("Admin")
-          ? "Admin"
-          : roles?.[0] || "moderator";
+      return exp > currentTime;
+    } catch (error) {
+      console.error("Error checking token validity:", error);
+      return false;
+    }
+  }
+
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<any>(
+        "/api/Auth/login",
+        credentials
+      );
+      console.log("Login API Response:", response);
+
+      // Kiểm tra response structure
+      if (response.data && response.data.token) {
+        const token = response.data.token;
+
+        // Parse JWT để lấy user info
+        const user = this.parseJwtToken(token);
+
+        if (user) {
+          // Save token và user info
+          this.saveToken(token);
+          this.saveUser(user);
+
+          return {
+            success: true,
+            message: "Đăng nhập thành công",
+            user: user,
+            token: token,
+          };
+        } else {
+          return {
+            success: false,
+            message: "Không thể parse thông tin người dùng từ token",
+          };
+        }
+      } else {
+        return {
+          success: false,
+          message: response.data?.message || "Đăng nhập thất bại",
+        };
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+
+      if (error.response?.data?.message) {
+        return {
+          success: false,
+          message: error.response.data.message,
+        };
+      }
 
       return {
-        nameid:
-          payload[
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-          ],
-        name: payload[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
-        ],
-        role: role,
-        exp: payload.exp,
-        iss: payload.iss,
-        aud: payload.aud,
+        success: false,
+        message: "Có lỗi xảy ra khi đăng nhập",
       };
+    }
+  }
+
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  saveToken(token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+  }
+
+  getCurrentUser(): User | null {
+    const userStr = localStorage.getItem(this.userKey);
+    if (!userStr) return null;
+
+    try {
+      return JSON.parse(userStr) as User;
     } catch (error) {
-      console.error("JWT decode error:", error);
+      console.error("Error parsing user data:", error);
       return null;
     }
+  }
+
+  saveUser(user: User): void {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+  }
+
+  // Utility method để check role cụ thể
+  isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === "admin";
+  }
+
+  isModerator(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === "moderator";
+  }
+
+  hasRole(role: "admin" | "moderator"): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === role;
   }
 }
 

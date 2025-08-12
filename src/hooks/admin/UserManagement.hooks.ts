@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "react-hot-toast";
-import { authService } from "../services/authService";
+import { authService } from "../../services/authService";
 import {
   SimpleUser,
   UserStats,
   SortField,
   SortOrder,
-} from "../types/UserManagement.types";
+} from "../../types/admin/UserManagement.types";
 
 const API_BASE =
   "https://snaplinkapi-g7eubeghazh5byd8.southeastasia-01.azurewebsites.net/api";

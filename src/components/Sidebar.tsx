@@ -1,226 +1,163 @@
-// components/common/Sidebar.tsx
+// components/Sidebar.tsx - UPDATED VERSION
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import {
-  BarChart,
-  Users,
-  Image,
-  Calendar,
-  CreditCard,
-  Settings,
-  Shield,
-  Flag,
-  UserCheck,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LogOut, X, Menu } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { toast } from "react-hot-toast";
 
-interface MenuItem {
-  path: string;
-  icon: React.ReactNode;
-  label: string;
-  badge?: number;
-  roles: ("admin" | "moderator")[];
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface SidebarProps {
   collapsed?: boolean;
-  onToggle?: () => void;
+  onToggle: () => void;
+  navigation: NavigationItem[];
+  title: string;
+  userRole: "admin" | "moderator";
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  collapsed = false,
+  onToggle,
+  navigation,
+  title,
+  userRole,
+}) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const menuItems: MenuItem[] = [
-    {
-      path: "/admin",
-      icon: <BarChart className="w-5 h-5" />,
-      label: "Dashboard",
-      roles: ["admin"],
-    },
-    {
-      path: "/admin/users",
-      icon: <Users className="w-5 h-5" />,
-      label: "Quản lý người dùng",
-      roles: ["admin"],
-    },
-    {
-      path: "/admin/content",
-      icon: <Image className="w-5 h-5" />,
-      label: "Kiểm duyệt nội dung",
-      badge: 5,
-      roles: ["admin"],
-    },
-    {
-      path: "/admin/bookings",
-      icon: <Calendar className="w-5 h-5" />,
-      label: "Quản lý đặt chỗ",
-      roles: ["admin"],
-    },
-    {
-      path: "/admin/transactions",
-      icon: <CreditCard className="w-5 h-5" />,
-      label: "Quản lý giao dịch",
-      roles: ["admin"],
-    },
-    {
-      path: "/admin/settings",
-      icon: <Settings className="w-5 h-5" />,
-      label: "Cài đặt hệ thống",
-      roles: ["admin"],
-    },
-    // Moderator menu items
-    {
-      path: "/moderator",
-      icon: <Shield className="w-5 h-5" />,
-      label: "Dashboard",
-      roles: ["moderator"],
-    },
-    {
-      path: "/moderator/content",
-      icon: <Image className="w-5 h-5" />,
-      label: "Kiểm duyệt nội dung",
-      badge: 3,
-      roles: ["moderator"],
-    },
-    {
-      path: "/moderator/reports",
-      icon: <Flag className="w-5 h-5" />,
-      label: "Xử lý báo cáo",
-      badge: 8,
-      roles: ["moderator"],
-    },
-    {
-      path: "/moderator/users",
-      icon: <UserCheck className="w-5 h-5" />,
-      label: "Quản lý người dùng",
-      roles: ["moderator"],
-    },
-  ];
+  const handleLogout = () => {
+    logout();
+    toast.success("Đăng xuất thành công!");
+    // Use window.location.href instead of navigate to avoid white screen
+    window.location.href = "/login";
+  };
 
-  // Filter menu items based on user role
-  const filteredMenuItems = menuItems.filter(
-    (item) => user?.role && item.roles.includes(user.role)
-  );
-
-  const isActive = (path: string) => {
-    if (path === "/admin" || path === "/moderator") {
-      return location.pathname === path;
+  const isCurrentPath = (path: string) => {
+    // Handle index routes
+    if (path === "/admin" && userRole === "admin") {
+      return location.pathname === "/admin";
+    }
+    if (path === "/moderator" && userRole === "moderator") {
+      return location.pathname === "/moderator";
     }
     return location.pathname.startsWith(path);
   };
 
+  // Color scheme based on role
+  const colorScheme = {
+    admin: {
+      primary: "blue",
+      bg: "bg-blue-600",
+      text: "text-blue-700",
+      bgLight: "bg-blue-100",
+      bgHover: "hover:bg-blue-700",
+    },
+    moderator: {
+      primary: "green",
+      bg: "bg-green-600",
+      text: "text-green-700",
+      bgLight: "bg-green-100",
+      bgHover: "hover:bg-green-700",
+    },
+  };
+
+  const colors = colorScheme[userRole];
+
   return (
     <div
       className={`
-      bg-gray-900 text-white h-screen flex flex-col transition-all duration-300 relative
+      bg-white shadow-lg transition-all duration-300 ease-in-out h-full
       ${collapsed ? "w-16" : "w-64"}
     `}
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          {!collapsed && (
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                SnapLink
-              </h1>
-              <p className="text-xs text-gray-400 mt-1">
-                {user?.role === "admin" ? "Admin Panel" : "Moderator Panel"}
-              </p>
-            </div>
-          )}
-
-          {/* Toggle button */}
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors hidden lg:block"
-          >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
-            )}
-          </button>
-        </div>
+      {/* Sidebar Header */}
+      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+        {!collapsed && (
+          <h1 className={`text-xl font-bold ${colors.text}`}>{title}</h1>
+        )}
+        <button
+          onClick={onToggle}
+          className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+        >
+          {collapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {filteredMenuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`
-              flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
-              ${
-                isActive(item.path)
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }
-            `}
-          >
-            <span
+      <nav className="mt-8 px-4 space-y-2">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const current = isCurrentPath(item.href);
+
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
               className={`
-              flex-shrink-0 transition-transform duration-200
-              ${isActive(item.path) ? "scale-110" : "group-hover:scale-110"}
-            `}
+                group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                ${
+                  current
+                    ? `${colors.bgLight} ${colors.text}`
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                }
+              `}
+              title={collapsed ? item.name : ""}
             >
-              {item.icon}
-            </span>
-
-            {!collapsed && (
-              <>
-                <span className="font-medium truncate">{item.label}</span>
-                {item.badge && (
-                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
-                    {item.badge}
-                  </span>
-                )}
-              </>
-            )}
-
-            {collapsed && item.badge && (
-              <span className="absolute left-8 top-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                {item.badge > 9 ? "9+" : item.badge}
-              </span>
-            )}
-          </Link>
-        ))}
+              <Icon
+                className={`
+                h-5 w-5 transition-colors flex-shrink-0
+                ${
+                  current
+                    ? colors.text
+                    : "text-gray-400 group-hover:text-gray-500"
+                }
+                ${collapsed ? "" : "mr-3"}
+              `}
+              />
+              {!collapsed && item.name}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Footer */}
-      {!collapsed && (
-        <div className="p-4 border-t border-gray-700">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                <Users className="w-4 h-4 text-white" />
+      {/* User info and logout */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div
+          className={`flex items-center ${
+            collapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          {!collapsed && (
+            <div className="flex items-center">
+              <div
+                className={`h-8 w-8 ${colors.bg} rounded-full flex items-center justify-center`}
+              >
+                <span className="text-sm font-medium text-white">
+                  {user?.name?.charAt(0) || (userRole === "admin" ? "A" : "M")}
+                </span>
               </div>
-              <div className="flex-1">
-                <p className="text-white font-medium text-sm">
-                  Người dùng online
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700">
+                  {user?.name}
                 </p>
-                <p className="text-blue-200 text-xs">1,234 đang hoạt động</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
               </div>
             </div>
-          </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+            title="Đăng xuất"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
-      )}
-
-      {/* Tooltip for collapsed items */}
-      {collapsed && (
-        <style>
-          {`
-            .group:hover .tooltip {
-              opacity: 1;
-              visibility: visible;
-            }
-          `}
-        </style>
-      )}
+      </div>
     </div>
   );
 };

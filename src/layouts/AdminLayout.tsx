@@ -1,12 +1,26 @@
-// layouts/AdminLayout.tsx
+// layouts/AdminLayout.tsx - FIXED VERSION
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import { Users, Calendar, CreditCard, Settings, BarChart3 } from "lucide-react";
 
 const AdminLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+
+  // ADMIN NAVIGATION - NO CONTENT MODERATION
+  const adminNavigation = [
+    { name: "Dashboard", href: "/admin", icon: BarChart3 },
+    { name: "User Management", href: "/admin/users", icon: Users },
+    { name: "Booking Management", href: "/admin/bookings", icon: Calendar },
+    {
+      name: "Transaction Management",
+      href: "/admin/transactions",
+      icon: CreditCard,
+    },
+    { name: "Settings", href: "/admin/settings", icon: Settings },
+  ];
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -20,7 +34,13 @@ const AdminLayout: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
-        <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebar}
+          navigation={adminNavigation}
+          title="SnapLink Admin"
+          userRole="admin"
+        />
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -31,7 +51,12 @@ const AdminLayout: React.FC = () => {
             onClick={toggleSidebarMobile}
           />
           <div className="fixed left-0 top-0 h-full">
-            <Sidebar onToggle={toggleSidebarMobile} />
+            <Sidebar
+              onToggle={toggleSidebarMobile}
+              navigation={adminNavigation}
+              title="SnapLink Admin"
+              userRole="admin"
+            />
           </div>
         </div>
       )}
@@ -41,6 +66,8 @@ const AdminLayout: React.FC = () => {
         <Header
           onToggleSidebar={toggleSidebarMobile}
           sidebarCollapsed={sidebarCollapsed}
+          title="SnapLink Admin"
+          userRole="admin"
         />
 
         <main className="flex-1 overflow-auto p-6">
