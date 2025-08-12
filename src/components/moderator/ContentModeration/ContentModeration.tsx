@@ -1,5 +1,3 @@
-// src/components/admin/ContentModeration/ContentModeration.tsx - UPDATED VERSION
-
 import React, { useState } from "react";
 import {
   Shield,
@@ -16,6 +14,14 @@ import {
   XCircle,
   AlertTriangle,
   Star,
+  ChevronRight,
+  ArrowLeft,
+  Grid3X3,
+  List,
+  Filter,
+  Search,
+  Camera,
+  Building,
 } from "lucide-react";
 import { useContentModeration } from "../../../hooks/moderator/ContentModeration.hooks";
 import {
@@ -29,7 +35,48 @@ import {
 } from "../../../types/moderator/ContentModeration.types";
 import ContentDetailModal from "./ContentDetailModal";
 
-// Stats Dashboard Component
+// ===== NEW INTERFACES FOR NAVIGATION =====
+interface NavigationState {
+  level: "category" | "itemList" | "imageList";
+  category?: string;
+  selectedItem?: any;
+}
+
+interface PhotographerListItem {
+  photographerId: number;
+  userId: number;
+  fullName: string;
+  hourlyRate?: number;
+  rating?: number;
+  profileImage?: string;
+  availabilityStatus?: string;
+  verificationStatus?: string;
+  styles?: string[];
+}
+
+interface LocationListItem {
+  locationId: number;
+  name: string;
+  address: string;
+  hourlyRate?: number;
+  capacity?: number;
+  availabilityStatus?: string;
+  locationOwner?: {
+    businessName?: string;
+  };
+}
+
+interface EventListItem {
+  id: number;
+  name: string;
+  locationName?: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+  applicationsCount?: number;
+}
+
+// Stats Dashboard Component (unchanged)
 const StatsDashboard: React.FC<{ stats: any }> = ({ stats }) => {
   if (!stats) return null;
 
@@ -39,44 +86,51 @@ const StatsDashboard: React.FC<{ stats: any }> = ({ stats }) => {
       value: stats.totalPending,
       icon: AlertTriangle,
       color: "text-yellow-600",
-      bgColor: "bg-yellow-100",
+      bgColor: "bg-yellow-50",
+      borderColor: "border-yellow-200",
     },
     {
       title: "Approved",
       value: stats.totalApproved,
       icon: CheckCircle,
       color: "text-green-600",
-      bgColor: "bg-green-100",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
     },
     {
       title: "Rejected",
       value: stats.totalRejected,
       icon: XCircle,
       color: "text-red-600",
-      bgColor: "bg-red-100",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
     },
     {
-      title: "Flagged Images",
+      title: "Total Images",
       value: stats.flaggedImages,
       icon: ImageIcon,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {statCards.map((stat, index) => (
-        <div key={index} className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center">
-            <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {stat.value}
+        <div
+          key={index}
+          className={`bg-white rounded-xl p-6 shadow-sm border ${stat.borderColor}`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">
+                {stat.title}
               </p>
+              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            </div>
+            <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+              <stat.icon className={`w-6 h-6 ${stat.color}`} />
             </div>
           </div>
         </div>
@@ -85,7 +139,801 @@ const StatsDashboard: React.FC<{ stats: any }> = ({ stats }) => {
   );
 };
 
-// Photographer Card Component
+// ===== NEW: Enhanced Image Categories Overview =====
+const ImageCategoriesOverview: React.FC<{
+  images: ImageItem[];
+  photographers: PhotographerModerationItem[];
+  venues: VenueModerationItem[];
+  events: EventModerationItem[];
+  onSelectCategory: (category: string) => void;
+}> = ({ images, photographers, venues, events, onSelectCategory }) => {
+  const categories = [
+    {
+      key: "photographer",
+      title: "Photographer Portfolios",
+      description: "Profile and portfolio images from photographers",
+      icon: Camera,
+      color: "blue",
+      count: photographers.length,
+      itemLabel: "photographers",
+    },
+    {
+      key: "location",
+      title: "Location Photos",
+      description: "Images showcasing venues and shooting locations",
+      icon: Building,
+      color: "green",
+      count: venues.length,
+      itemLabel: "locations",
+    },
+    {
+      key: "event",
+      title: "Event Photos",
+      description: "Images from photography events and sessions",
+      icon: Calendar,
+      color: "purple",
+      count: events.length,
+      itemLabel: "events",
+    },
+  ];
+
+  const getColorClasses = (color: string) => {
+    const colorMap = {
+      blue: {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-600",
+        hover: "hover:bg-blue-100",
+        icon: "text-blue-500",
+      },
+      green: {
+        bg: "bg-green-50",
+        border: "border-green-200",
+        text: "text-green-600",
+        hover: "hover:bg-green-100",
+        icon: "text-green-500",
+      },
+      purple: {
+        bg: "bg-purple-50",
+        border: "border-purple-200",
+        text: "text-purple-600",
+        hover: "hover:bg-purple-100",
+        icon: "text-purple-500",
+      },
+    };
+    return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">
+          Image Categories
+        </h2>
+        <div className="text-sm text-gray-500">
+          Total: {images.length} images across all categories
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {categories.map((category) => {
+          const colors = getColorClasses(category.color);
+          return (
+            <button
+              key={category.key}
+              onClick={() => onSelectCategory(category.key)}
+              className={`p-6 rounded-xl border-2 text-left transition-all duration-200 ${colors.bg} ${colors.border} ${colors.hover} group`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <category.icon className={`w-5 h-5 mr-2 ${colors.icon}`} />
+                    <h3 className={`font-semibold ${colors.text}`}>
+                      {category.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {category.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-2xl font-bold ${colors.text}`}>
+                      {category.count}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {category.itemLabel}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight
+                  className={`w-5 h-5 ${colors.text} group-hover:translate-x-1 transition-transform`}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ===== NEW: Photographer List Component =====
+const PhotographerListView: React.FC<{
+  photographers: PhotographerModerationItem[];
+  onBack: () => void;
+  onSelectPhotographer: (photographer: PhotographerModerationItem) => void;
+  loading?: boolean;
+}> = ({ photographers, onBack, onSelectPhotographer, loading }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredPhotographers = photographers.filter(
+    (photographer) =>
+      photographer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      photographer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={onBack}
+            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Categories
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Photographers ({filteredPhotographers.length})
+            </h2>
+            <p className="text-sm text-gray-500">
+              Select a photographer to view their images
+            </p>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search photographers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Photographer List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading photographers...</p>
+        </div>
+      ) : filteredPhotographers.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">No photographers found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPhotographers.map((photographer) => (
+            <PhotographerListCard
+              key={photographer.id}
+              photographer={photographer}
+              onClick={() => onSelectPhotographer(photographer)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PhotographerListCard: React.FC<{
+  photographer: PhotographerModerationItem;
+  onClick: () => void;
+}> = ({ photographer, onClick }) => {
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case "verified":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "rejected":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "suspended":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    }
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 text-left group"
+    >
+      <div className="flex items-start space-x-4">
+        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+          {photographer.profileImage ? (
+            <img
+              src={photographer.profileImage}
+              alt={photographer.fullName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Camera className="w-6 h-6 text-gray-400" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                {photographer.fullName}
+              </h3>
+              <p className="text-sm text-gray-500">{photographer.email}</p>
+            </div>
+            {photographer.verificationStatus && (
+              <span
+                className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(
+                  photographer.verificationStatus
+                )}`}
+              >
+                {photographer.verificationStatus}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex text-yellow-400">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="text-sm">
+                  {i < Math.floor(photographer.averageRating) ? "★" : "☆"}
+                </span>
+              ))}
+            </div>
+            <span className="text-sm text-gray-600">
+              {photographer.averageRating.toFixed(1)} (
+              {photographer.totalReviews} reviews)
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {photographer.yearsExperience} years experience
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+// ===== NEW: Location List Component =====
+const LocationListView: React.FC<{
+  venues: VenueModerationItem[];
+  onBack: () => void;
+  onSelectLocation: (venue: VenueModerationItem) => void;
+  loading?: boolean;
+}> = ({ venues, onBack, onSelectLocation, loading }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredVenues = venues.filter(
+    (venue) =>
+      venue.venueName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.address.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={onBack}
+            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Categories
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Locations ({filteredVenues.length})
+            </h2>
+            <p className="text-sm text-gray-500">
+              Select a location to view its images
+            </p>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search locations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Location List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading locations...</p>
+        </div>
+      ) : filteredVenues.length === 0 ? (
+        <div className="text-center py-12">
+          <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">No locations found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredVenues.map((venue) => (
+            <LocationListCard
+              key={venue.id}
+              venue={venue}
+              onClick={() => onSelectLocation(venue)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LocationListCard: React.FC<{
+  venue: VenueModerationItem;
+  onClick: () => void;
+}> = ({ venue, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 text-left group"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <h3 className="text-lg font-medium text-gray-900 line-clamp-2 group-hover:text-green-600 transition-colors">
+          {venue.venueName}
+        </h3>
+        <span
+          className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ml-2 ${
+            venue.isActive
+              ? "bg-green-100 text-green-800 border border-green-200"
+              : "bg-gray-100 text-gray-800 border border-gray-200"
+          }`}
+        >
+          {venue.isActive ? "Active" : "Inactive"}
+        </span>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="flex items-start">
+          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+          <p className="text-sm text-gray-600 line-clamp-2">{venue.address}</p>
+        </div>
+        {venue.ownerName && (
+          <div className="flex items-center">
+            <Users className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+            <p className="text-sm text-gray-600">Owner: {venue.ownerName}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-between items-center">
+        <span className="text-lg font-semibold text-gray-900">
+          {venue.hourlyRate
+            ? `${venue.hourlyRate.toLocaleString()}đ/hr`
+            : "Free"}
+        </span>
+        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+      </div>
+    </button>
+  );
+};
+
+// ===== NEW: Event List Component =====
+const EventListView: React.FC<{
+  events: EventModerationItem[];
+  onBack: () => void;
+  onSelectEvent: (event: EventModerationItem) => void;
+  loading?: boolean;
+}> = ({ events, onBack, onSelectEvent, loading }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredEvents = events.filter(
+    (event) =>
+      event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.locationName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={onBack}
+            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Categories
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Events ({filteredEvents.length})
+            </h2>
+            <p className="text-sm text-gray-500">
+              Select an event to view its images
+            </p>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Event List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading events...</p>
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        <div className="text-center py-12">
+          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">No events found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredEvents.map((event) => (
+            <EventListCard
+              key={event.id}
+              event={event}
+              onClick={() => onSelectEvent(event)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EventListCard: React.FC<{
+  event: EventModerationItem;
+  onClick: () => void;
+}> = ({ event, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 text-left group"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <h3 className="text-lg font-medium text-gray-900 line-clamp-2 group-hover:text-purple-600 transition-colors">
+          {event.eventName}
+        </h3>
+        <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 border border-purple-200 ml-2">
+          {event.status}
+        </span>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center">
+          <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+          <p className="text-sm text-gray-600 line-clamp-1">
+            {event.locationName}
+          </p>
+        </div>
+        <div className="flex items-center">
+          <Calendar className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+          <p className="text-sm text-gray-600">
+            {new Date(event.startDate).toLocaleDateString()} -{" "}
+            {new Date(event.endDate).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div className="flex items-center">
+          <Users className="w-4 h-4 text-gray-400 mr-1" />
+          <span className="text-sm text-gray-600">
+            {event.applicationsCount} applications
+          </span>
+        </div>
+        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+      </div>
+    </button>
+  );
+};
+
+// ===== UPDATED: Image Gallery Component =====
+const ImageGallery: React.FC<{
+  images: ImageItem[];
+  itemInfo: { type: string; name: string; id: number };
+  onBack: () => void;
+  onDelete: (id: number) => void;
+  onView: (image: ImageItem) => void;
+  onSetPrimary: (id: number) => void;
+  loading?: boolean;
+}> = ({
+  images,
+  itemInfo,
+  onBack,
+  onDelete,
+  onView,
+  onSetPrimary,
+  loading,
+}) => {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredImages = images.filter(
+    (img) =>
+      searchTerm === "" ||
+      (img.caption &&
+        img.caption.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={onBack}
+            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to {itemInfo.type} List
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {itemInfo.name}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {filteredImages.length} images found
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search captions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center border border-gray-300 rounded-lg">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 ${
+                viewMode === "grid"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 ${
+                viewMode === "list"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Images */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading images...</p>
+        </div>
+      ) : filteredImages.length === 0 ? (
+        <div className="text-center py-12">
+          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">
+            No images found for this {itemInfo.type.toLowerCase()}
+          </p>
+        </div>
+      ) : (
+        <div
+          className={
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+              : "space-y-4"
+          }
+        >
+          {filteredImages.map((image) =>
+            viewMode === "grid" ? (
+              <ImageGridCard
+                key={image.id}
+                image={image}
+                onDelete={onDelete}
+                onView={onView}
+                onSetPrimary={onSetPrimary}
+                loading={loading}
+              />
+            ) : (
+              <ImageListItem
+                key={image.id}
+                image={image}
+                onDelete={onDelete}
+                onView={onView}
+                onSetPrimary={onSetPrimary}
+                loading={loading}
+              />
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Grid View Image Card (unchanged)
+const ImageGridCard: React.FC<{
+  image: ImageItem;
+  onDelete: (id: number) => void;
+  onView: (image: ImageItem) => void;
+  onSetPrimary: (id: number) => void;
+  loading?: boolean;
+}> = ({ image, onDelete, onView, onSetPrimary, loading }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-shadow">
+    <div className="aspect-square bg-gray-100 relative overflow-hidden">
+      <img
+        src={image.url}
+        alt={image.caption || "Content"}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src =
+            "https://via.placeholder.com/300x300?text=No+Image";
+        }}
+      />
+      {image.isPrimary && (
+        <span className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+          Primary
+        </span>
+      )}
+
+      {/* Hover Actions */}
+      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+        <button
+          onClick={() => onView(image)}
+          className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          title="View Details"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+        {!image.isPrimary && (
+          <button
+            onClick={() => onSetPrimary(image.id)}
+            disabled={loading}
+            className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+            title="Set as Primary"
+          >
+            <Star className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          onClick={() => onDelete(image.id)}
+          disabled={loading}
+          className="bg-white text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+    {image.caption && (
+      <div className="p-3">
+        <p className="text-sm text-gray-600 truncate" title={image.caption}>
+          {image.caption}
+        </p>
+      </div>
+    )}
+  </div>
+);
+
+// List View Image Item (unchanged)
+const ImageListItem: React.FC<{
+  image: ImageItem;
+  onDelete: (id: number) => void;
+  onView: (image: ImageItem) => void;
+  onSetPrimary: (id: number) => void;
+  loading?: boolean;
+}> = ({ image, onDelete, onView, onSetPrimary, loading }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center space-x-4">
+      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+        <img
+          src={image.url}
+          alt={image.caption || "Content"}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src =
+              "https://via.placeholder.com/64x64?text=No+Image";
+          }}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              {image.caption || `Image ${image.id}`}
+            </p>
+            <p className="text-xs text-gray-500">
+              {new Date(image.createdAt).toLocaleDateString()}
+              {image.isPrimary && (
+                <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                  Primary
+                </span>
+              )}
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onView(image)}
+              className="text-blue-600 hover:text-blue-800 p-1"
+              title="View Details"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            {!image.isPrimary && (
+              <button
+                onClick={() => onSetPrimary(image.id)}
+                disabled={loading}
+                className="text-yellow-600 hover:text-yellow-800 p-1 disabled:opacity-50"
+                title="Set as Primary"
+              >
+                <Star className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={() => onDelete(image.id)}
+              disabled={loading}
+              className="text-red-600 hover:text-red-800 p-1 disabled:opacity-50"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Photographer Card Component (simplified)
 const PhotographerCard: React.FC<{
   photographer: PhotographerModerationItem;
   onVerify: (id: number, status: VerificationStatus, notes?: string) => void;
@@ -95,20 +943,20 @@ const PhotographerCard: React.FC<{
   const getStatusColor = (status: VerificationStatus) => {
     switch (status) {
       case VerificationStatus.VERIFIED:
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 border-green-200";
       case VerificationStatus.REJECTED:
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-200";
       case VerificationStatus.SUSPENDED:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="flex items-start space-x-3">
-        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-start space-x-4">
+        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
           {photographer.profileImage ? (
             <img
               src={photographer.profileImage}
@@ -119,153 +967,75 @@ const PhotographerCard: React.FC<{
             <Users className="w-6 h-6 text-gray-400" />
           )}
         </div>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900 truncate">
-              {photographer.fullName}
-            </h3>
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 truncate">
+                {photographer.fullName}
+              </h3>
+              <p className="text-sm text-gray-500">{photographer.email}</p>
+            </div>
             <span
-              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+              className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(
                 photographer.verificationStatus
               )}`}
             >
               {photographer.verificationStatus}
             </span>
           </div>
-          <p className="text-sm text-gray-500">{photographer.email}</p>
-          <div className="flex items-center mt-1">
-            <Star className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm text-gray-600 ml-1">
+
+          <div className="flex items-center mb-3">
+            <div className="flex text-yellow-400 mr-2">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="text-sm">
+                  {i < Math.floor(photographer.averageRating) ? "★" : "☆"}
+                </span>
+              ))}
+            </div>
+            <span className="text-sm text-gray-600">
               {photographer.averageRating.toFixed(1)} (
               {photographer.totalReviews} reviews)
             </span>
           </div>
-          {photographer.yearsExperience && (
-            <p className="text-xs text-gray-500 mt-1">
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
               {photographer.yearsExperience} years experience
-            </p>
-          )}
-        </div>
-      </div>
+            </div>
 
-      <div className="mt-4 flex justify-between items-center">
-        <button
-          onClick={() => onViewDetails(photographer)}
-          className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
-        >
-          <Eye className="w-4 h-4 mr-1" />
-          View Details
-        </button>
-
-        {photographer.verificationStatus === VerificationStatus.PENDING && (
-          <div className="flex space-x-2">
-            <button
-              onClick={() =>
-                onVerify(photographer.id, VerificationStatus.REJECTED)
-              }
-              disabled={loading}
-              className="flex items-center text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              Reject
-            </button>
-            <button
-              onClick={() =>
-                onVerify(photographer.id, VerificationStatus.VERIFIED)
-              }
-              disabled={loading}
-              className="flex items-center text-green-600 hover:text-green-800 text-sm disabled:opacity-50"
-            >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Verify
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Image Card Component (Updated with category info)
-const ImageCard: React.FC<{
-  image: ImageItem;
-  onDelete: (id: number) => void;
-  onView: (image: ImageItem) => void;
-  onSetPrimary: (id: number) => void;
-  loading?: boolean;
-}> = ({ image, onDelete, onView, onSetPrimary, loading }) => {
-  const getImageCategory = () => {
-    if (image.photographerId)
-      return { label: "Photographer", color: "bg-blue-100 text-blue-800" };
-    if (image.locationId)
-      return { label: "Location", color: "bg-green-100 text-green-800" };
-    if (image.eventId)
-      return { label: "Event", color: "bg-purple-100 text-purple-800" };
-    return { label: "Other", color: "bg-gray-100 text-gray-800" };
-  };
-
-  const category = getImageCategory();
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="aspect-square bg-gray-100 relative">
-        <img
-          src={image.url}
-          alt={image.caption || "Content"}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://via.placeholder.com/300x300?text=No+Image";
-          }}
-        />
-        {image.isPrimary && (
-          <span className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs">
-            Primary
-          </span>
-        )}
-        <span
-          className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${category.color}`}
-        >
-          {category.label}
-        </span>
-      </div>
-      <div className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-500">
-            {new Date(image.createdAt).toLocaleDateString()}
-          </p>
-          <div className="text-xs text-gray-400">
-            ID:{" "}
-            {image.photographerId || image.locationId || image.eventId || "N/A"}
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => onView(image)}
-            className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
-          >
-            <Eye className="w-4 h-4 mr-1" />
-            View
-          </button>
-          <div className="flex space-x-2">
-            {!image.isPrimary && (
+            <div className="flex items-center space-x-2">
               <button
-                onClick={() => onSetPrimary(image.id)}
-                disabled={loading}
-                className="flex items-center text-green-600 hover:text-green-800 text-sm disabled:opacity-50"
+                onClick={() => onViewDetails(photographer)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
-                <Star className="w-4 h-4 mr-1" />
-                Primary
+                View Details
               </button>
-            )}
-            <button
-              onClick={() => onDelete(image.id)}
-              disabled={loading}
-              className="flex items-center text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </button>
+
+              {photographer.verificationStatus ===
+                VerificationStatus.PENDING && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() =>
+                      onVerify(photographer.id, VerificationStatus.REJECTED)
+                    }
+                    disabled={loading}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() =>
+                      onVerify(photographer.id, VerificationStatus.VERIFIED)
+                    }
+                    disabled={loading}
+                    className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
+                  >
+                    Verify
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -273,107 +1043,45 @@ const ImageCard: React.FC<{
   );
 };
 
-// Review Card Component (Updated)
+// Review Card Component (unchanged)
 const ReviewCard: React.FC<{
   review: ReviewItem;
   onDelete: (id: number) => void;
   loading?: boolean;
 }> = ({ review, onDelete, loading }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-    <div className="flex justify-between items-start mb-2">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="flex justify-between items-start mb-4">
       <div className="flex items-center">
-        <div className="flex text-yellow-400">
+        <div className="flex text-yellow-400 mr-2">
           {[...Array(5)].map((_, i) => (
-            <span key={i}>{i < review.rating ? "★" : "☆"}</span>
+            <span key={i} className="text-lg">
+              {i < review.rating ? "★" : "☆"}
+            </span>
           ))}
         </div>
-        <span className="ml-2 text-sm text-gray-600">({review.rating}/5)</span>
+        <span className="text-sm text-gray-600 font-medium">
+          ({review.rating}/5)
+        </span>
       </div>
       <button
         onClick={() => onDelete(review.id)}
         disabled={loading}
-        className="text-red-600 hover:text-red-800 disabled:opacity-50"
+        className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1"
+        title="Delete Review"
       >
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
-    <p className="text-gray-700 mb-2">{review.comment}</p>
+
+    <p className="text-gray-700 mb-3 line-clamp-3">{review.comment}</p>
+
     <p className="text-xs text-gray-500">
       {new Date(review.createdAt).toLocaleDateString()}
     </p>
   </div>
 );
 
-// Venue Card Component (New)
-const VenueCard: React.FC<{
-  venue: VenueModerationItem;
-  onViewDetails: (venue: VenueModerationItem) => void;
-}> = ({ venue, onViewDetails }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-    <div className="flex items-start justify-between mb-2">
-      <h3 className="text-sm font-medium text-gray-900">{venue.venueName}</h3>
-      <span
-        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          venue.isActive
-            ? "bg-green-100 text-green-800"
-            : "bg-gray-100 text-gray-800"
-        }`}
-      >
-        {venue.isActive ? "Active" : "Inactive"}
-      </span>
-    </div>
-    <p className="text-sm text-gray-600 mb-2">{venue.address}</p>
-    <p className="text-xs text-gray-500 mb-3">Owner: {venue.ownerName}</p>
-    <div className="flex justify-between items-center">
-      <span className="text-sm font-medium text-gray-900">
-        {venue.hourlyRate ? `$${venue.hourlyRate}/hr` : "Price not set"}
-      </span>
-      <button
-        onClick={() => onViewDetails(venue)}
-        className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
-      >
-        <Eye className="w-4 h-4 mr-1" />
-        View
-      </button>
-    </div>
-  </div>
-);
-
-// Event Card Component (New)
-const EventCard: React.FC<{
-  event: EventModerationItem;
-  onViewDetails: (event: EventModerationItem) => void;
-}> = ({ event, onViewDetails }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-    <div className="flex items-start justify-between mb-2">
-      <h3 className="text-sm font-medium text-gray-900">{event.eventName}</h3>
-      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-        {event.status}
-      </span>
-    </div>
-    <p className="text-sm text-gray-600 mb-2">{event.locationName}</p>
-    <div className="flex items-center text-xs text-gray-500 mb-2">
-      <Calendar className="w-3 h-3 mr-1" />
-      {new Date(event.startDate).toLocaleDateString()} -{" "}
-      {new Date(event.endDate).toLocaleDateString()}
-    </div>
-    <div className="flex justify-between items-center">
-      <div className="text-sm">
-        <span className="text-gray-500">Applications: </span>
-        <span className="font-medium">{event.applicationsCount}</span>
-      </div>
-      <button
-        onClick={() => onViewDetails(event)}
-        className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
-      >
-        <Eye className="w-4 h-4 mr-1" />
-        View
-      </button>
-    </div>
-  </div>
-);
-
-// Main Component
+// ===== MAIN COMPONENT WITH ENHANCED NAVIGATION =====
 const ContentModeration: React.FC = () => {
   const {
     loading,
@@ -392,30 +1100,23 @@ const ContentModeration: React.FC = () => {
     verifyPhotographer,
     testAPI,
     refreshData,
+    // NEW: Item-specific image methods
+    itemImages,
+    itemImagesLoading,
+    loadPhotographerImages,
+    loadLocationImages,
+    loadEventImages,
+    clearItemImages,
   } = useContentModeration();
 
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [imageFilter, setImageFilter] = useState<
-    "all" | "photographer" | "location" | "event"
-  >("all");
-
-  // Filter images by category
-  const filteredImages = images.filter((image) => {
-    if (imageFilter === "all") return true;
-    if (imageFilter === "photographer") return image.photographerId;
-    if (imageFilter === "location") return image.locationId;
-    if (imageFilter === "event") return image.eventId;
-    return true;
+  // Navigation state
+  const [navigationState, setNavigationState] = useState<NavigationState>({
+    level: "category",
   });
 
-  // Get image counts by category
-  const imageCounts = {
-    all: images.length,
-    photographer: images.filter((img) => img.photographerId).length,
-    location: images.filter((img) => img.locationId).length,
-    event: images.filter((img) => img.eventId).length,
-  };
+  // Modal state
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const handleDeleteImage = async (imageId: number) => {
     if (confirm("Are you sure you want to delete this image?")) {
@@ -446,6 +1147,78 @@ const ContentModeration: React.FC = () => {
     setDetailModalOpen(true);
   };
 
+  // ===== NEW NAVIGATION HANDLERS =====
+  const handleSelectCategory = (category: string) => {
+    setNavigationState({
+      level: "itemList",
+      category,
+    });
+    clearItemImages(); // Clear previous item images
+  };
+
+  const handleSelectItem = async (item: any, category: string) => {
+    setNavigationState({
+      level: "imageList",
+      category,
+      selectedItem: item,
+    });
+
+    // Load images for this specific item using the enhanced methods
+    if (category === "photographer") {
+      const photographerId = item.photographerId || item.id;
+      await loadPhotographerImages(photographerId);
+    } else if (category === "location") {
+      const locationId = item.locationId || item.id;
+      await loadLocationImages(locationId);
+    } else if (category === "event") {
+      const eventId = item.id;
+      await loadEventImages(eventId);
+    }
+  };
+
+  const handleBackToCategories = () => {
+    setNavigationState({
+      level: "category",
+    });
+  };
+
+  const handleBackToItemList = () => {
+    setNavigationState({
+      level: "itemList",
+      category: navigationState.category,
+    });
+  };
+
+  const getItemInfo = () => {
+    if (!navigationState.selectedItem || !navigationState.category) {
+      return { type: "", name: "", id: 0 };
+    }
+
+    const item = navigationState.selectedItem;
+
+    if (navigationState.category === "photographer") {
+      return {
+        type: "Photographer",
+        name: item.fullName || "Unknown Photographer",
+        id: item.photographerId || item.id,
+      };
+    } else if (navigationState.category === "location") {
+      return {
+        type: "Location",
+        name: item.name || item.venueName || "Unknown Location",
+        id: item.locationId || item.id,
+      };
+    } else if (navigationState.category === "event") {
+      return {
+        type: "Event",
+        name: item.name || item.eventName || "Unknown Event",
+        id: item.id,
+      };
+    }
+
+    return { type: "", name: "", id: 0 };
+  };
+
   const tabs: { key: ContentType; label: string; icon: any; count: number }[] =
     [
       { key: "images", label: "Images", icon: ImageIcon, count: images.length },
@@ -466,237 +1239,405 @@ const ContentModeration: React.FC = () => {
     ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <Shield className="w-8 h-8 mr-3 text-blue-600" />
-              Content Moderation
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Review and moderate user-generated content
-            </p>
-            {apiStatus && (
-              <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
-                <strong>API Status:</strong> {apiStatus}
-              </div>
-            )}
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={testAPI}
-              className="flex items-center space-x-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2.5 rounded-lg"
-            >
-              <Shield className="w-4 h-4" />
-              <span>Test API</span>
-            </button>
-            <button
-              onClick={refreshData}
-              className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Dashboard */}
-      <StatsDashboard stats={stats} />
-
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <tab.icon className="w-5 h-5 inline mr-2" />
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-          <p>Loading content...</p>
-        </div>
-      ) : (
-        <>
-          {/* Images Tab */}
-          {activeTab === "images" && (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
             <div>
-              {/* Image Category Filter */}
-              <div className="mb-6 bg-white rounded-lg p-4 shadow-sm border">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">
-                  Filter by Category
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: "all", label: "All Images", count: imageCounts.all },
-                    {
-                      key: "photographer",
-                      label: "Photographer Portfolio",
-                      count: imageCounts.photographer,
-                    },
-                    {
-                      key: "location",
-                      label: "Location Photos",
-                      count: imageCounts.location,
-                    },
-                    {
-                      key: "event",
-                      label: "Event Photos",
-                      count: imageCounts.event,
-                    },
-                  ].map((filter) => (
-                    <button
-                      key={filter.key}
-                      onClick={() => setImageFilter(filter.key as any)}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        imageFilter === filter.key
-                          ? "bg-blue-500 text-white border-blue-500"
-                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      {filter.label} ({filter.count})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Images Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredImages.map((image) => (
-                  <ImageCard
-                    key={image.id}
-                    image={image}
-                    onDelete={handleDeleteImage}
-                    onView={handleViewDetails}
-                    onSetPrimary={handleSetImagePrimary}
-                    loading={loading}
-                  />
-                ))}
-                {filteredImages.length === 0 && (
-                  <div className="col-span-full text-center py-8 text-gray-500">
-                    {imageFilter === "all"
-                      ? "No images found"
-                      : `No ${imageFilter} images found`}
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <Shield className="w-8 h-8 mr-3 text-green-600" />
+                Content Moderation
+              </h1>
+              <p className="mt-2 text-gray-600">
+                Review and moderate user-generated content across the platform
+              </p>
+              {apiStatus && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span className="text-sm font-medium text-blue-800">
+                      API Status:
+                    </span>
+                    <span className="text-sm text-blue-700 ml-1">
+                      {apiStatus}
+                    </span>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Reviews Tab */}
-          {activeTab === "reviews" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {reviews.map((review) => (
-                <ReviewCard
-                  key={review.id}
-                  review={review}
-                  onDelete={handleDeleteReview}
-                  loading={loading}
-                />
-              ))}
-              {reviews.length === 0 && (
-                <div className="col-span-full text-center py-8 text-gray-500">
-                  No reviews found
                 </div>
               )}
             </div>
-          )}
+            <div className="flex space-x-3">
+              <button
+                onClick={testAPI}
+                className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Test API</span>
+              </button>
+              <button
+                onClick={refreshData}
+                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-          {/* Photographers Tab */}
-          {activeTab === "photographers" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {photographers.map((photographer) => (
-                <PhotographerCard
-                  key={photographer.id}
-                  photographer={photographer}
-                  onVerify={handleVerifyPhotographer}
-                  onViewDetails={handleViewDetails}
-                  loading={loading}
-                />
+        {/* Stats Dashboard */}
+        <StatsDashboard stats={stats} />
+
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-gray-200 bg-white rounded-t-xl">
+            <nav className="flex space-x-8 px-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setNavigationState({ level: "category" }); // Reset navigation when switching tabs
+                  }}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
+                    activeTab === tab.key
+                      ? "border-green-500 text-green-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <tab.icon className="w-5 h-5" />
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      activeTab === tab.key
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
               ))}
-              {photographers.length === 0 && (
-                <div className="col-span-full text-center py-8 text-gray-500">
-                  No photographers found
+            </nav>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-6">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading content...</p>
+            </div>
+          ) : (
+            <>
+              {/* Images Tab - Enhanced with 3-level navigation */}
+              {activeTab === "images" && (
+                <>
+                  {navigationState.level === "category" && (
+                    <ImageCategoriesOverview
+                      images={images}
+                      photographers={photographers}
+                      venues={venues}
+                      events={events}
+                      onSelectCategory={handleSelectCategory}
+                    />
+                  )}
+
+                  {navigationState.level === "itemList" &&
+                    navigationState.category === "photographer" && (
+                      <PhotographerListView
+                        photographers={photographers}
+                        onBack={handleBackToCategories}
+                        onSelectPhotographer={(photographer) =>
+                          handleSelectItem(photographer, "photographer")
+                        }
+                        loading={loading}
+                      />
+                    )}
+
+                  {navigationState.level === "itemList" &&
+                    navigationState.category === "location" && (
+                      <LocationListView
+                        venues={venues}
+                        onBack={handleBackToCategories}
+                        onSelectLocation={(venue) =>
+                          handleSelectItem(venue, "location")
+                        }
+                        loading={loading}
+                      />
+                    )}
+
+                  {navigationState.level === "itemList" &&
+                    navigationState.category === "event" && (
+                      <EventListView
+                        events={events}
+                        onBack={handleBackToCategories}
+                        onSelectEvent={(event) =>
+                          handleSelectItem(event, "event")
+                        }
+                        loading={loading}
+                      />
+                    )}
+
+                  {navigationState.level === "imageList" && (
+                    <ImageGallery
+                      images={itemImages} // Use itemImages instead of filteredImages
+                      itemInfo={getItemInfo()}
+                      onBack={handleBackToItemList}
+                      onDelete={handleDeleteImage}
+                      onView={handleViewDetails}
+                      onSetPrimary={handleSetImagePrimary}
+                      loading={itemImagesLoading} // Use itemImagesLoading instead of loading
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Reviews Tab (unchanged) */}
+              {activeTab === "reviews" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Review Management
+                    </h2>
+                    <div className="text-sm text-gray-500">
+                      {reviews.length} reviews total
+                    </div>
+                  </div>
+
+                  {reviews.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No reviews found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {reviews.map((review) => (
+                        <ReviewCard
+                          key={review.id}
+                          review={review}
+                          onDelete={handleDeleteReview}
+                          loading={loading}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Venues Tab */}
-          {activeTab === "venues" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {venues.map((venue) => (
-                <VenueCard
-                  key={venue.id}
-                  venue={venue}
-                  onViewDetails={handleViewDetails}
-                />
-              ))}
-              {venues.length === 0 && (
-                <div className="col-span-full text-center py-8 text-gray-500">
-                  No venues found
+              {/* Photographers Tab (unchanged) */}
+              {activeTab === "photographers" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Photographer Verification
+                    </h2>
+                    <div className="text-sm text-gray-500">
+                      {photographers.length} photographers total
+                    </div>
+                  </div>
+
+                  {photographers.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No photographers found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {photographers.map((photographer) => (
+                        <PhotographerCard
+                          key={photographer.id}
+                          photographer={photographer}
+                          onVerify={handleVerifyPhotographer}
+                          onViewDetails={handleViewDetails}
+                          loading={loading}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Events Tab */}
-          {activeTab === "events" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {events.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onViewDetails={handleViewDetails}
-                />
-              ))}
-              {events.length === 0 && (
-                <div className="col-span-full text-center py-8 text-gray-500">
-                  No events found
+              {/* Venues Tab */}
+              {activeTab === "venues" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Venue Management
+                    </h2>
+                    <div className="text-sm text-gray-500">
+                      {venues.length} venues total
+                    </div>
+                  </div>
+
+                  {venues.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No venues found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {venues.map((venue) => (
+                        <VenueCard
+                          key={venue.id}
+                          venue={venue}
+                          onViewDetails={handleViewDetails}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </>
-      )}
 
-      {/* Detail Modal */}
-      <ContentDetailModal
-        content={selectedItem}
-        isOpen={detailModalOpen}
-        onClose={() => {
-          setDetailModalOpen(false);
-          setSelectedItem(null);
-        }}
-        onApprove={(id) => {
-          // Handle approval based on content type
-          console.log("Approve:", id);
-        }}
-        onReject={(id) => {
-          // Handle rejection based on content type
-          console.log("Reject:", id);
-        }}
-      />
+              {/* Events Tab */}
+              {activeTab === "events" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Event Management
+                    </h2>
+                    <div className="text-sm text-gray-500">
+                      {events.length} events total
+                    </div>
+                  </div>
+
+                  {events.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No events found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {events.map((event) => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onViewDetails={handleViewDetails}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Detail Modal */}
+        <ContentDetailModal
+          content={selectedItem}
+          isOpen={detailModalOpen}
+          onClose={() => {
+            setDetailModalOpen(false);
+            setSelectedItem(null);
+          }}
+          onApprove={(id) => {
+            console.log("Approve:", id);
+          }}
+          onReject={(id) => {
+            console.log("Reject:", id);
+          }}
+        />
+      </div>
     </div>
   );
 };
+
+// Venue Card Component (unchanged)
+const VenueCard: React.FC<{
+  venue: VenueModerationItem;
+  onViewDetails: (venue: VenueModerationItem) => void;
+}> = ({ venue, onViewDetails }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="flex items-start justify-between mb-4">
+      <h3 className="text-lg font-medium text-gray-900 line-clamp-1">
+        {venue.venueName}
+      </h3>
+      <span
+        className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${
+          venue.isActive
+            ? "bg-green-100 text-green-800 border border-green-200"
+            : "bg-gray-100 text-gray-800 border border-gray-200"
+        }`}
+      >
+        {venue.isActive ? "Active" : "Inactive"}
+      </span>
+    </div>
+
+    <div className="space-y-2 mb-4">
+      <div className="flex items-start">
+        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+        <p className="text-sm text-gray-600 line-clamp-2">{venue.address}</p>
+      </div>
+      <div className="flex items-center">
+        <Users className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+        <p className="text-sm text-gray-600">Owner: {venue.ownerName}</p>
+      </div>
+    </div>
+
+    <div className="flex justify-between items-center">
+      <span className="text-lg font-semibold text-gray-900">
+        {venue.hourlyRate ? `${venue.hourlyRate}/hr` : "Price not set"}
+      </span>
+      <button
+        onClick={() => onViewDetails(venue)}
+        className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+      >
+        <Eye className="w-4 h-4 mr-1" />
+        View Details
+      </button>
+    </div>
+  </div>
+);
+
+// Event Card Component (unchanged)
+const EventCard: React.FC<{
+  event: EventModerationItem;
+  onViewDetails: (event: EventModerationItem) => void;
+}> = ({ event, onViewDetails }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="flex items-start justify-between mb-4">
+      <h3 className="text-lg font-medium text-gray-900 line-clamp-1">
+        {event.eventName}
+      </h3>
+      <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+        {event.status}
+      </span>
+    </div>
+
+    <div className="space-y-2 mb-4">
+      <div className="flex items-center">
+        <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+        <p className="text-sm text-gray-600 line-clamp-1">
+          {event.locationName}
+        </p>
+      </div>
+      <div className="flex items-center">
+        <Calendar className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+        <p className="text-sm text-gray-600">
+          {new Date(event.startDate).toLocaleDateString()} -{" "}
+          {new Date(event.endDate).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+
+    <div className="flex justify-between items-center">
+      <div className="flex items-center">
+        <Users className="w-4 h-4 text-gray-400 mr-1" />
+        <span className="text-sm text-gray-600">
+          {event.applicationsCount} applications
+        </span>
+      </div>
+      <button
+        onClick={() => onViewDetails(event)}
+        className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+      >
+        <Eye className="w-4 h-4 mr-1" />
+        View Details
+      </button>
+    </div>
+  </div>
+);
 
 export default ContentModeration;

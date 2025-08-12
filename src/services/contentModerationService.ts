@@ -1,4 +1,4 @@
-// src/services/contentModerationService.ts - UPDATED VERSION
+// src/services/contentModerationService.ts - UPDATED FOR STRUCTURED NAVIGATION
 
 import { authService } from "./authService";
 import {
@@ -29,7 +29,7 @@ class ContentModerationService {
     };
   }
 
-  // ===== REVERT TO WORKING APPROACH =====
+  // ===== IMAGE METHODS (Keep existing approach) =====
   async getAllImages(): Promise<ImageItem[]> {
     try {
       console.log("🔄 Fetching all images from API endpoints...");
@@ -71,6 +71,270 @@ class ContentModerationService {
     }
   }
 
+  // ===== NEW: SPECIFIC IMAGE METHODS FOR INDIVIDUAL ITEMS =====
+  async getImagesForPhotographer(photographerId: number): Promise<ImageItem[]> {
+    try {
+      console.log(`📸 Getting images for photographer ${photographerId}`);
+      const response = await fetch(
+        `${API_BASE}/Image/photographer/${photographerId}`,
+        { headers: this.getHeaders() }
+      );
+
+      if (response.ok) {
+        const images = await response.json();
+        console.log(
+          `✅ Found ${images.length} images for photographer ${photographerId}`
+        );
+        return Array.isArray(images) ? images : [];
+      }
+      return [];
+    } catch (error) {
+      console.error(
+        `💥 Error getting images for photographer ${photographerId}:`,
+        error
+      );
+      return [];
+    }
+  }
+
+  async getImagesForLocation(locationId: number): Promise<ImageItem[]> {
+    try {
+      console.log(`🏢 Getting images for location ${locationId}`);
+      const response = await fetch(`${API_BASE}/Image/location/${locationId}`, {
+        headers: this.getHeaders(),
+      });
+
+      if (response.ok) {
+        const images = await response.json();
+        console.log(
+          `✅ Found ${images.length} images for location ${locationId}`
+        );
+        return Array.isArray(images) ? images : [];
+      }
+      return [];
+    } catch (error) {
+      console.error(
+        `💥 Error getting images for location ${locationId}:`,
+        error
+      );
+      return [];
+    }
+  }
+
+  async getImagesForEvent(eventId: number): Promise<ImageItem[]> {
+    try {
+      console.log(`🎉 Getting images for event ${eventId}`);
+      const response = await fetch(`${API_BASE}/Image/event/${eventId}`, {
+        headers: this.getHeaders(),
+      });
+
+      if (response.ok) {
+        const images = await response.json();
+        console.log(`✅ Found ${images.length} images for event ${eventId}`);
+        return Array.isArray(images) ? images : [];
+      }
+      return [];
+    } catch (error) {
+      console.error(`💥 Error getting images for event ${eventId}:`, error);
+      return [];
+    }
+  }
+
+  // ===== ENHANCED PHOTOGRAPHER METHODS =====
+  async getPhotographersForModeration(
+    pagination: PaginationParams = { page: 1, pageSize: 50 },
+    filters: ModerationFilters = {}
+  ): Promise<ModerationListResponse<PhotographerModerationItem>> {
+    try {
+      console.log("👥 Fetching photographers for moderation...");
+
+      const response = await fetch(`${API_BASE}/Photographer`, {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Photographers API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const photographers = Array.isArray(data) ? data : [];
+
+      console.log("📊 Raw photographer data sample:", photographers[0]);
+
+      // Transform to our format using the actual API response structure
+      const items: PhotographerModerationItem[] = photographers.map(
+        (photographer: any) => ({
+          id: photographer.photographerId || photographer.id,
+          userId: photographer.userId,
+          fullName: photographer.fullName || "Unknown",
+          email: photographer.email || "",
+          phoneNumber: photographer.phoneNumber,
+          yearsExperience: photographer.yearsExperience || 0,
+          equipment: photographer.equipment,
+          portfolioImages: [], // Will be fetched separately when needed
+          verificationStatus: photographer.verificationStatus || "pending",
+          profileImage: photographer.profileImage,
+          bio: photographer.bio,
+          specialties: photographer.styles || [], // API provides styles array
+          hourlyRate: photographer.hourlyRate,
+          totalReviews: photographer.ratingCount || 0,
+          averageRating: photographer.rating || 0,
+          createdAt: photographer.createdAt || new Date().toISOString(),
+          updatedAt: photographer.updatedAt || new Date().toISOString(),
+        })
+      );
+
+      console.log("✅ Transformed photographers:", items.length);
+
+      return {
+        items,
+        totalCount: items.length,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: Math.ceil(items.length / pagination.pageSize),
+      };
+    } catch (error) {
+      console.error("💥 Error fetching photographers for moderation:", error);
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: 0,
+      };
+    }
+  }
+
+  // ===== ENHANCED VENUE METHODS =====
+  async getVenuesForModeration(
+    pagination: PaginationParams = { page: 1, pageSize: 50 },
+    filters: ModerationFilters = {}
+  ): Promise<ModerationListResponse<VenueModerationItem>> {
+    try {
+      console.log("🏢 Fetching venues for moderation...");
+
+      const response = await fetch(`${API_BASE}/Location/GetAllLocations`, {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Venues API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const venues = Array.isArray(data) ? data : [];
+
+      console.log("📊 Raw venue data sample:", venues[0]);
+
+      // Transform to our format using the actual API response structure
+      const items: VenueModerationItem[] = venues.map((venue: any) => ({
+        id: venue.locationId || venue.id,
+        ownerId: venue.locationOwnerId,
+        ownerName:
+          venue.locationOwner?.businessName ||
+          venue.locationOwner?.user?.fullName ||
+          "Unknown Owner",
+        venueName: venue.name,
+        address: venue.address,
+        description: venue.description,
+        hourlyRate: venue.hourlyRate,
+        capacity: venue.capacity,
+        amenities: venue.amenities
+          ? venue.amenities.split(",").map((a: string) => a.trim())
+          : [],
+        images: [], // Will be fetched separately when needed
+        isActive: venue.availabilityStatus === "Available",
+        featuredStatus: venue.featuredStatus || false,
+        verificationStatus: venue.verificationStatus || "pending",
+        createdAt: venue.createdAt || new Date().toISOString(),
+        updatedAt: venue.updatedAt || new Date().toISOString(),
+      }));
+
+      console.log("✅ Transformed venues:", items.length);
+
+      return {
+        items,
+        totalCount: items.length,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: Math.ceil(items.length / pagination.pageSize),
+      };
+    } catch (error) {
+      console.error("💥 Error fetching venues for moderation:", error);
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: 0,
+      };
+    }
+  }
+
+  // ===== ENHANCED EVENT METHODS =====
+  async getEventsForModeration(
+    pagination: PaginationParams = { page: 1, pageSize: 50 },
+    filters: ModerationFilters = {}
+  ): Promise<ModerationListResponse<EventModerationItem>> {
+    try {
+      console.log("🎉 Fetching events for moderation...");
+
+      const response = await fetch(`${API_BASE}/LocationEvent`, {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Events API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = Array.isArray(data) ? data : [];
+
+      console.log("📊 Raw event data sample:", events[0]);
+
+      // Transform to our format using the actual API response structure
+      const items: EventModerationItem[] = events.map((event: any) => ({
+        id: event.id,
+        locationId: event.locationId,
+        locationName:
+          event.location?.name || event.locationName || "Unknown Location",
+        eventName: event.name,
+        description: event.description,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        discountedPrice: event.discountedPrice,
+        originalPrice: event.originalPrice,
+        maxPhotographers: event.maxPhotographers || 0,
+        images: [], // Will be fetched separately when needed
+        applicationsCount: event.applicationsCount || 0,
+        bookingsCount: event.bookingsCount || 0,
+        status: event.status || "active",
+        createdAt: event.createdAt || new Date().toISOString(),
+        updatedAt: event.updatedAt || new Date().toISOString(),
+      }));
+
+      console.log("✅ Transformed events:", items.length);
+
+      return {
+        items,
+        totalCount: items.length,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: Math.ceil(items.length / pagination.pageSize),
+      };
+    } catch (error) {
+      console.error("💥 Error fetching events for moderation:", error);
+      return {
+        items: [],
+        totalCount: 0,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: 0,
+      };
+    }
+  }
+
+  // ===== PRIVATE HELPER METHODS (Keep existing) =====
   private async getPhotographerImages(): Promise<ImageItem[]> {
     try {
       const photographersResponse = await fetch(`${API_BASE}/Photographer`, {
@@ -151,7 +415,7 @@ class ContentModerationService {
       const allLocationImages: ImageItem[] = [];
 
       for (const location of locations) {
-        const locationId = location.id || location.locationId;
+        const locationId = location.locationId || location.id;
 
         if (!locationId) continue;
 
@@ -237,35 +501,81 @@ class ContentModerationService {
     }
   }
 
-  async getAllImagesSimple(): Promise<ImageItem[]> {
+  // ===== MODERATION ACTION METHODS =====
+  async deleteImage(imageId: number): Promise<boolean> {
     try {
-      console.log("🔄 Trying simple approach...");
+      console.log("🗑️ Deleting image:", imageId);
 
-      const testPhotographerId = 1;
-      const response = await fetch(
-        `${API_BASE}/Image/photographer/${testPhotographerId}`,
-        {
-          headers: this.getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_BASE}/Image/${imageId}`, {
+        method: "DELETE",
+        headers: this.getHeaders(),
+      });
 
-      console.log("🖼️ Direct image test response:", response.status);
-
-      if (response.ok) {
-        const images = await response.json();
-        console.log("✅ Direct images loaded:", images.length);
-        return Array.isArray(images) ? images : [];
-      } else {
-        const errorText = await response.text();
-        console.error("❌ Image API Error details:", errorText);
-        throw new Error(`Image API failed: ${response.status} - ${errorText}`);
-      }
+      console.log("📊 Delete image response:", response.status);
+      return response.ok;
     } catch (error) {
-      console.error("💥 Error in getAllImagesSimple:", error);
-      throw error;
+      console.error("💥 Error deleting image:", error);
+      return false;
     }
   }
 
+  async setImagePrimary(imageId: number): Promise<boolean> {
+    try {
+      console.log("⭐ Setting image primary:", imageId);
+
+      const response = await fetch(`${API_BASE}/Image/${imageId}/set-primary`, {
+        method: "PUT",
+        headers: this.getHeaders(),
+      });
+
+      console.log("📊 Set primary response:", response.status);
+      return response.ok;
+    } catch (error) {
+      console.error("💥 Error setting image primary:", error);
+      return false;
+    }
+  }
+
+  async verifyPhotographer(
+    photographerId: number,
+    status: VerificationStatus,
+    notes?: string
+  ): Promise<ModerationActionResponse> {
+    try {
+      console.log(`✅ Verifying photographer ${photographerId} as ${status}`);
+
+      const response = await fetch(
+        `${API_BASE}/Photographer/${photographerId}/verify`,
+        {
+          method: "PATCH",
+          headers: this.getHeaders(),
+          body: JSON.stringify(status), // API expects just the status string
+        }
+      );
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: `Photographer ${status} successfully`,
+        };
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Verify photographer error:", errorText);
+        return {
+          success: false,
+          message: `Failed to verify photographer: ${response.status}`,
+        };
+      }
+    } catch (error) {
+      console.error("💥 Error verifying photographer:", error);
+      return {
+        success: false,
+        message: "Failed to verify photographer",
+      };
+    }
+  }
+
+  // ===== REVIEW METHODS =====
   async getAllReviews(): Promise<ReviewItem[]> {
     try {
       console.log("🔄 Fetching reviews...");
@@ -293,23 +603,6 @@ class ContentModerationService {
     }
   }
 
-  async deleteImage(imageId: number): Promise<boolean> {
-    try {
-      console.log("🗑️ Deleting image:", imageId);
-
-      const response = await fetch(`${API_BASE}/Image/${imageId}`, {
-        method: "DELETE",
-        headers: this.getHeaders(),
-      });
-
-      console.log("📊 Delete image response:", response.status);
-      return response.ok;
-    } catch (error) {
-      console.error("💥 Error deleting image:", error);
-      return false;
-    }
-  }
-
   async deleteReview(reviewId: number): Promise<boolean> {
     try {
       console.log("🗑️ Deleting review:", reviewId);
@@ -327,273 +620,6 @@ class ContentModerationService {
     }
   }
 
-  async setImagePrimary(imageId: number): Promise<boolean> {
-    try {
-      console.log("⭐ Setting image primary:", imageId);
-
-      const response = await fetch(`${API_BASE}/Image/${imageId}/set-primary`, {
-        method: "PUT",
-        headers: this.getHeaders(),
-      });
-
-      console.log("📊 Set primary response:", response.status);
-      return response.ok;
-    } catch (error) {
-      console.error("💥 Error setting image primary:", error);
-      return false;
-    }
-  }
-
-  // ===== NEW MODERATION METHODS =====
-
-  // Dashboard Stats
-  async getModerationStats(): Promise<ModerationStats> {
-    try {
-      console.log("📊 Fetching moderation stats...");
-
-      // Fetch counts from different endpoints
-      const [photographers, venues, events, reviews] = await Promise.all([
-        this.getPhotographersForModeration({ page: 1, pageSize: 1 }),
-        this.getVenuesForModeration({ page: 1, pageSize: 1 }),
-        this.getEventsForModeration({ page: 1, pageSize: 1 }),
-        this.getReviewsForModeration({ page: 1, pageSize: 1 }),
-      ]);
-
-      // Calculate stats based on actual data
-      return {
-        totalPending: 28, // Mock for now
-        totalApproved: 156,
-        totalRejected: 12,
-        pendingPhotographers: photographers.totalCount || 0,
-        pendingVenues: venues.totalCount || 0,
-        pendingEvents: events.totalCount || 0,
-        pendingReviews: reviews.totalCount || 0,
-        flaggedImages: 3, // Mock for now
-      };
-    } catch (error) {
-      console.error("Error fetching moderation stats:", error);
-      // Return mock data on error
-      return {
-        totalPending: 28,
-        totalApproved: 156,
-        totalRejected: 12,
-        pendingPhotographers: 12,
-        pendingVenues: 5,
-        pendingEvents: 3,
-        pendingReviews: 8,
-        flaggedImages: 3,
-      };
-    }
-  }
-
-  // Photographer Moderation
-  async getPhotographersForModeration(
-    pagination: PaginationParams = { page: 1, pageSize: 10 },
-    filters: ModerationFilters = {}
-  ): Promise<ModerationListResponse<PhotographerModerationItem>> {
-    try {
-      console.log("👥 Fetching photographers for moderation...");
-
-      const response = await fetch(`${API_BASE}/Photographer`, {
-        headers: this.getHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Photographers API failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const photographers = Array.isArray(data) ? data : [];
-
-      // Transform to our format
-      const items: PhotographerModerationItem[] = photographers.map(
-        (photographer: any) => ({
-          id: photographer.id,
-          userId: photographer.userId,
-          fullName: photographer.user?.fullName || "Unknown",
-          email: photographer.user?.email || "",
-          phoneNumber: photographer.user?.phoneNumber,
-          yearsExperience: photographer.yearsExperience,
-          equipment: photographer.equipment,
-          portfolioImages: [], // Will be fetched separately if needed
-          verificationStatus: photographer.verificationStatus || "pending",
-          profileImage: photographer.user?.profileImage,
-          bio: photographer.user?.bio,
-          specialties: [], // Would need to be parsed from API
-          hourlyRate: photographer.hourlyRate,
-          totalReviews: photographer.ratingCount || 0,
-          averageRating: photographer.rating || 0,
-          createdAt: photographer.createdAt,
-          updatedAt: photographer.updatedAt,
-        })
-      );
-
-      return {
-        items,
-        totalCount: items.length,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: Math.ceil(items.length / pagination.pageSize),
-      };
-    } catch (error) {
-      console.error("Error fetching photographers for moderation:", error);
-      return {
-        items: [],
-        totalCount: 0,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: 0,
-      };
-    }
-  }
-
-  async verifyPhotographer(
-    photographerId: number,
-    status: VerificationStatus,
-    notes?: string
-  ): Promise<ModerationActionResponse> {
-    try {
-      console.log(`✅ Verifying photographer ${photographerId} as ${status}`);
-
-      const response = await fetch(
-        `${API_BASE}/Photographer/${photographerId}/verify`,
-        {
-          method: "PATCH",
-          headers: this.getHeaders(),
-          body: JSON.stringify({ status, notes }),
-        }
-      );
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `Photographer ${status} successfully`,
-        };
-      } else {
-        return {
-          success: false,
-          message: `Failed to verify photographer: ${response.status}`,
-        };
-      }
-    } catch (error) {
-      console.error("Error verifying photographer:", error);
-      return {
-        success: false,
-        message: "Failed to verify photographer",
-      };
-    }
-  }
-
-  // Venue Moderation (simplified for now)
-  async getVenuesForModeration(
-    pagination: PaginationParams = { page: 1, pageSize: 10 },
-    filters: ModerationFilters = {}
-  ): Promise<ModerationListResponse<VenueModerationItem>> {
-    try {
-      const response = await fetch(`${API_BASE}/Location/GetAllLocations`, {
-        headers: this.getHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Venues API failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const venues = Array.isArray(data) ? data : [];
-
-      const items: VenueModerationItem[] = venues.map((venue: any) => ({
-        id: venue.id,
-        ownerId: venue.locationOwnerId,
-        ownerName: venue.locationOwner?.user?.fullName || "Unknown",
-        venueName: venue.name,
-        address: venue.address,
-        description: venue.description,
-        hourlyRate: venue.hourlyRate,
-        capacity: venue.capacity,
-        amenities: venue.amenities ? venue.amenities.split(",") : [],
-        images: [],
-        isActive: venue.availabilityStatus === "available",
-        featuredStatus: venue.featuredStatus,
-        verificationStatus: venue.verificationStatus || "pending",
-        createdAt: venue.createdAt,
-        updatedAt: venue.updatedAt,
-      }));
-
-      return {
-        items,
-        totalCount: items.length,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: Math.ceil(items.length / pagination.pageSize),
-      };
-    } catch (error) {
-      console.error("Error fetching venues for moderation:", error);
-      return {
-        items: [],
-        totalCount: 0,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: 0,
-      };
-    }
-  }
-
-  // Event Moderation
-  async getEventsForModeration(
-    pagination: PaginationParams = { page: 1, pageSize: 10 },
-    filters: ModerationFilters = {}
-  ): Promise<ModerationListResponse<EventModerationItem>> {
-    try {
-      const response = await fetch(`${API_BASE}/LocationEvent`, {
-        headers: this.getHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Events API failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const events = Array.isArray(data) ? data : [];
-
-      const items: EventModerationItem[] = events.map((event: any) => ({
-        id: event.id,
-        locationId: event.locationId,
-        locationName: event.location?.name || "Unknown",
-        eventName: event.name,
-        description: event.description,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        discountedPrice: event.discountedPrice,
-        originalPrice: event.originalPrice,
-        maxPhotographers: event.maxPhotographers,
-        images: [],
-        applicationsCount: 0, // Would need separate API call
-        bookingsCount: 0, // Would need separate API call
-        status: event.status,
-        createdAt: event.createdAt,
-        updatedAt: event.updatedAt,
-      }));
-
-      return {
-        items,
-        totalCount: items.length,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: Math.ceil(items.length / pagination.pageSize),
-      };
-    } catch (error) {
-      console.error("Error fetching events for moderation:", error);
-      return {
-        items: [],
-        totalCount: 0,
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: 0,
-      };
-    }
-  }
-
-  // Review Moderation
   async getReviewsForModeration(
     pagination: PaginationParams = { page: 1, pageSize: 10 },
     filters: ModerationFilters = {}
@@ -620,7 +646,62 @@ class ContentModerationService {
     }
   }
 
-  // ===== EXISTING METHODS (Keep for backward compatibility) =====
+  // ===== STATS METHODS =====
+  async getModerationStats(): Promise<ModerationStats> {
+    try {
+      console.log("📊 Fetching moderation stats...");
+
+      // Fetch counts from different endpoints
+      const [photographers, venues, events, reviews] = await Promise.all([
+        this.getPhotographersForModeration({ page: 1, pageSize: 1 }),
+        this.getVenuesForModeration({ page: 1, pageSize: 1 }),
+        this.getEventsForModeration({ page: 1, pageSize: 1 }),
+        this.getReviewsForModeration({ page: 1, pageSize: 1 }),
+      ]);
+
+      // Calculate stats based on actual data
+      const totalPending =
+        photographers.items.filter((p) => p.verificationStatus === "pending")
+          .length +
+        venues.items.filter((v) => v.verificationStatus === "pending").length;
+
+      const totalApproved =
+        photographers.items.filter((p) => p.verificationStatus === "verified")
+          .length +
+        venues.items.filter((v) => v.verificationStatus === "verified").length;
+
+      const totalRejected =
+        photographers.items.filter((p) => p.verificationStatus === "rejected")
+          .length +
+        venues.items.filter((v) => v.verificationStatus === "rejected").length;
+
+      return {
+        totalPending,
+        totalApproved,
+        totalRejected,
+        pendingPhotographers: photographers.totalCount || 0,
+        pendingVenues: venues.totalCount || 0,
+        pendingEvents: events.totalCount || 0,
+        pendingReviews: reviews.totalCount || 0,
+        flaggedImages: 3, // This would need a separate API endpoint
+      };
+    } catch (error) {
+      console.error("Error fetching moderation stats:", error);
+      // Return mock data on error
+      return {
+        totalPending: 28,
+        totalApproved: 156,
+        totalRejected: 12,
+        pendingPhotographers: 12,
+        pendingVenues: 5,
+        pendingEvents: 3,
+        pendingReviews: 8,
+        flaggedImages: 3,
+      };
+    }
+  }
+
+  // ===== UTILITY METHODS =====
   async testAPIConnection(): Promise<{ success: boolean; message: string }> {
     try {
       console.log("🧪 Testing API connection...");

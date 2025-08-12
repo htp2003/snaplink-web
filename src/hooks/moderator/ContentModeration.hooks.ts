@@ -1,4 +1,4 @@
-// src/hooks/moderator/ContentModeration.hooks.ts - UPDATED VERSION
+// src/hooks/moderator/ContentModeration.hooks.ts - UPDATED FOR STRUCTURED NAVIGATION
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
@@ -16,7 +16,7 @@ import {
   VerificationStatus,
 } from "../../types/moderator/ContentModeration.types";
 
-// ===== MAIN CONTENT MODERATION HOOK (Updated to include new features) =====
+// ===== MAIN CONTENT MODERATION HOOK (Enhanced) =====
 export const useContentModeration = () => {
   // Existing state
   const [loading, setLoading] = useState(false);
@@ -25,13 +25,17 @@ export const useContentModeration = () => {
   const [activeTab, setActiveTab] = useState<ContentType>("images");
   const [apiStatus, setApiStatus] = useState<string>("");
 
-  // New state for enhanced moderation
+  // Enhanced state for structured navigation
   const [stats, setStats] = useState<ModerationStats | null>(null);
   const [photographers, setPhotographers] = useState<
     PhotographerModerationItem[]
   >([]);
   const [venues, setVenues] = useState<VenueModerationItem[]>([]);
   const [events, setEvents] = useState<EventModerationItem[]>([]);
+
+  // NEW: State for individual item images
+  const [itemImages, setItemImages] = useState<ImageItem[]>([]);
+  const [itemImagesLoading, setItemImagesLoading] = useState(false);
 
   // Test API connection (keep existing)
   const testAPI = async () => {
@@ -61,7 +65,9 @@ export const useContentModeration = () => {
     }
   };
 
-  // Existing image loading (keep for backward compatibility)
+  // ===== ENHANCED IMAGE LOADING METHODS =====
+
+  // Load all images (existing method)
   const loadImages = async () => {
     try {
       setLoading(true);
@@ -89,7 +95,80 @@ export const useContentModeration = () => {
     }
   };
 
-  // Existing review loading (keep for backward compatibility)
+  // NEW: Load images for specific photographer
+  const loadPhotographerImages = async (photographerId: number) => {
+    try {
+      setItemImagesLoading(true);
+      console.log(`📸 Loading images for photographer ${photographerId}`);
+
+      const images = await contentModerationService.getImagesForPhotographer(
+        photographerId
+      );
+      setItemImages(images);
+      console.log(
+        `✅ Loaded ${images.length} images for photographer ${photographerId}`
+      );
+
+      return images;
+    } catch (error) {
+      console.error("💥 Error loading photographer images:", error);
+      toast.error("Failed to load photographer images");
+      setItemImages([]);
+      return [];
+    } finally {
+      setItemImagesLoading(false);
+    }
+  };
+
+  // NEW: Load images for specific location
+  const loadLocationImages = async (locationId: number) => {
+    try {
+      setItemImagesLoading(true);
+      console.log(`🏢 Loading images for location ${locationId}`);
+
+      const images = await contentModerationService.getImagesForLocation(
+        locationId
+      );
+      setItemImages(images);
+      console.log(
+        `✅ Loaded ${images.length} images for location ${locationId}`
+      );
+
+      return images;
+    } catch (error) {
+      console.error("💥 Error loading location images:", error);
+      toast.error("Failed to load location images");
+      setItemImages([]);
+      return [];
+    } finally {
+      setItemImagesLoading(false);
+    }
+  };
+
+  // NEW: Load images for specific event
+  const loadEventImages = async (eventId: number) => {
+    try {
+      setItemImagesLoading(true);
+      console.log(`🎉 Loading images for event ${eventId}`);
+
+      const images = await contentModerationService.getImagesForEvent(eventId);
+      setItemImages(images);
+      console.log(`✅ Loaded ${images.length} images for event ${eventId}`);
+
+      return images;
+    } catch (error) {
+      console.error("💥 Error loading event images:", error);
+      toast.error("Failed to load event images");
+      setItemImages([]);
+      return [];
+    } finally {
+      setItemImagesLoading(false);
+    }
+  };
+
+  // ===== ENTITY LOADING METHODS =====
+
+  // Load reviews (existing method)
   const loadReviews = async () => {
     try {
       setLoading(true);
@@ -109,7 +188,7 @@ export const useContentModeration = () => {
     }
   };
 
-  // NEW: Load photographers for moderation
+  // Load photographers for moderation
   const loadPhotographers = async () => {
     try {
       setLoading(true);
@@ -127,7 +206,7 @@ export const useContentModeration = () => {
     }
   };
 
-  // NEW: Load venues for moderation
+  // Load venues for moderation
   const loadVenues = async () => {
     try {
       setLoading(true);
@@ -144,7 +223,7 @@ export const useContentModeration = () => {
     }
   };
 
-  // NEW: Load events for moderation
+  // Load events for moderation
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -161,12 +240,16 @@ export const useContentModeration = () => {
     }
   };
 
-  // Existing delete methods (keep for backward compatibility)
+  // ===== ACTION METHODS =====
+
+  // Existing delete methods
   const deleteImage = async (imageId: number) => {
     try {
       const success = await contentModerationService.deleteImage(imageId);
       if (success) {
+        // Update both main images list and item-specific images list
         setImages((prev) => prev.filter((img) => img.id !== imageId));
+        setItemImages((prev) => prev.filter((img) => img.id !== imageId));
         toast.success("Image deleted successfully");
         return true;
       }
@@ -200,13 +283,16 @@ export const useContentModeration = () => {
     try {
       const success = await contentModerationService.setImagePrimary(imageId);
       if (success) {
-        setImages((prev) =>
+        // Update both main images list and item-specific images list
+        const updateImages = (prev: ImageItem[]) =>
           prev.map((img) =>
             img.id === imageId
               ? { ...img, isPrimary: true }
               : { ...img, isPrimary: false }
-          )
-        );
+          );
+
+        setImages(updateImages);
+        setItemImages(updateImages);
         toast.success("Image set as primary");
         return true;
       }
@@ -219,7 +305,7 @@ export const useContentModeration = () => {
     }
   };
 
-  // NEW: Verify photographer
+  // Verify photographer
   const verifyPhotographer = async (
     photographerId: number,
     status: VerificationStatus,
@@ -255,14 +341,36 @@ export const useContentModeration = () => {
     }
   };
 
-  // Load data based on active tab
+  // ===== UTILITY METHODS =====
+
+  // Clear item-specific images when navigating away
+  const clearItemImages = () => {
+    setItemImages([]);
+  };
+
+  // Get filtered images based on category and item ID
+  const getFilteredImages = (category: string, itemId: number): ImageItem[] => {
+    if (category === "photographer") {
+      return images.filter((img) => img.photographerId === itemId);
+    } else if (category === "location") {
+      return images.filter((img) => img.locationId === itemId);
+    } else if (category === "event") {
+      return images.filter((img) => img.eventId === itemId);
+    }
+    return [];
+  };
+
+  // Load data based on active tab (only refresh current tab data)
   useEffect(() => {
-    console.log(`🔄 Loading data for tab: ${activeTab}`);
+    if (activeTab === "images") {
+      // For images tab, we already have all data loaded
+      console.log(`📸 Images tab active, data already loaded`);
+      return;
+    }
+
+    console.log(`🔄 Refreshing data for tab: ${activeTab}`);
 
     switch (activeTab) {
-      case "images":
-        loadImages();
-        break;
       case "reviews":
         loadReviews();
         break;
@@ -275,14 +383,30 @@ export const useContentModeration = () => {
       case "events":
         loadEvents();
         break;
-      default:
-        loadImages();
     }
   }, [activeTab]);
 
-  // Load stats on component mount
+  // Load stats and initial data on component mount
   useEffect(() => {
-    loadStats();
+    const loadInitialData = async () => {
+      console.log("🚀 Loading initial data for all tabs...");
+
+      // Load stats first
+      await loadStats();
+
+      // Load all data to populate tab counts
+      await Promise.all([
+        loadImages(),
+        loadReviews(),
+        loadPhotographers(),
+        loadVenues(),
+        loadEvents(),
+      ]);
+
+      console.log("✅ Initial data loading completed");
+    };
+
+    loadInitialData();
   }, []);
 
   // Universal refresh function
@@ -319,7 +443,7 @@ export const useContentModeration = () => {
     testAPI,
     refreshData,
 
-    // New state and methods
+    // Enhanced state and methods
     stats,
     photographers,
     venues,
@@ -330,6 +454,15 @@ export const useContentModeration = () => {
     loadVenues,
     loadEvents,
 
+    // NEW: Item-specific image methods
+    itemImages,
+    itemImagesLoading,
+    loadPhotographerImages,
+    loadLocationImages,
+    loadEventImages,
+    clearItemImages,
+    getFilteredImages,
+
     // Utility
     refresh: refreshData,
   };
@@ -337,7 +470,7 @@ export const useContentModeration = () => {
 
 // ===== SPECIALIZED HOOKS FOR SPECIFIC MODERATION AREAS =====
 
-// Photographer-specific hook
+// Enhanced Photographer-specific hook
 export const usePhotographerModeration = () => {
   const [photographers, setPhotographers] = useState<
     PhotographerModerationItem[]
@@ -396,6 +529,18 @@ export const usePhotographerModeration = () => {
     []
   );
 
+  const loadPhotographerImages = useCallback(async (photographerId: number) => {
+    try {
+      return await contentModerationService.getImagesForPhotographer(
+        photographerId
+      );
+    } catch (error) {
+      console.error("Error loading photographer images:", error);
+      toast.error("Failed to load photographer images");
+      return [];
+    }
+  }, []);
+
   useEffect(() => {
     loadPhotographers();
   }, [loadPhotographers]);
@@ -405,11 +550,12 @@ export const usePhotographerModeration = () => {
     loading,
     actionLoading,
     verifyPhotographer,
+    loadPhotographerImages,
     refresh: loadPhotographers,
   };
 };
 
-// Image-specific hook (enhanced version of existing functionality)
+// Enhanced Image-specific hook
 export const useImageModeration = () => {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -423,6 +569,50 @@ export const useImageModeration = () => {
     } catch (error) {
       console.error("Error loading images:", error);
       toast.error("Failed to load images");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadImagesForPhotographer = useCallback(
+    async (photographerId: number) => {
+      try {
+        setLoading(true);
+        return await contentModerationService.getImagesForPhotographer(
+          photographerId
+        );
+      } catch (error) {
+        console.error("Error loading photographer images:", error);
+        toast.error("Failed to load photographer images");
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const loadImagesForLocation = useCallback(async (locationId: number) => {
+    try {
+      setLoading(true);
+      return await contentModerationService.getImagesForLocation(locationId);
+    } catch (error) {
+      console.error("Error loading location images:", error);
+      toast.error("Failed to load location images");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadImagesForEvent = useCallback(async (eventId: number) => {
+    try {
+      setLoading(true);
+      return await contentModerationService.getImagesForEvent(eventId);
+    } catch (error) {
+      console.error("Error loading event images:", error);
+      toast.error("Failed to load event images");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -488,11 +678,14 @@ export const useImageModeration = () => {
     actionLoading,
     deleteImage,
     setImagePrimary,
+    loadImagesForPhotographer,
+    loadImagesForLocation,
+    loadImagesForEvent,
     refresh: loadImages,
   };
 };
 
-// Review-specific hook
+// Enhanced Review-specific hook
 export const useReviewModeration = () => {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -543,5 +736,85 @@ export const useReviewModeration = () => {
     actionLoading,
     deleteReview,
     refresh: loadReviews,
+  };
+};
+
+// ===== NEW: Venue-specific hook =====
+export const useVenueModeration = () => {
+  const [venues, setVenues] = useState<VenueModerationItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadVenues = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await contentModerationService.getVenuesForModeration();
+      setVenues(response.items);
+    } catch (error) {
+      console.error("Error loading venues:", error);
+      toast.error("Failed to load venues");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadVenueImages = useCallback(async (locationId: number) => {
+    try {
+      return await contentModerationService.getImagesForLocation(locationId);
+    } catch (error) {
+      console.error("Error loading venue images:", error);
+      toast.error("Failed to load venue images");
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVenues();
+  }, [loadVenues]);
+
+  return {
+    venues,
+    loading,
+    loadVenueImages,
+    refresh: loadVenues,
+  };
+};
+
+// ===== NEW: Event-specific hook =====
+export const useEventModeration = () => {
+  const [events, setEvents] = useState<EventModerationItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await contentModerationService.getEventsForModeration();
+      setEvents(response.items);
+    } catch (error) {
+      console.error("Error loading events:", error);
+      toast.error("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadEventImages = useCallback(async (eventId: number) => {
+    try {
+      return await contentModerationService.getImagesForEvent(eventId);
+    } catch (error) {
+      console.error("Error loading event images:", error);
+      toast.error("Failed to load event images");
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  return {
+    events,
+    loading,
+    loadEventImages,
+    refresh: loadEvents,
   };
 };
