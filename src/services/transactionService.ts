@@ -5,6 +5,9 @@ import {
   TransactionHistoryParams,
   TransactionHistoryResponse,
   MonthlyIncomeResponse,
+  TransactionApiResponse,
+  SimpleTransactionApiResponse,
+  SingleTransactionApiResponse,
 } from "../types/admin/Transaction.types";
 
 class TransactionService {
@@ -28,7 +31,7 @@ class TransactionService {
       }
 
       // Response.data chứa { error: 0, message: "...", data: { transactions: [...] } }
-      const apiResponse = response.data;
+      const apiResponse = response.data as TransactionApiResponse;
 
       if (apiResponse.error !== 0) {
         throw new Error(apiResponse.message || "API returned error");
@@ -57,7 +60,7 @@ class TransactionService {
         throw new Error(response.message || "Failed to fetch transaction");
       }
 
-      const apiResponse = response.data;
+      const apiResponse = response.data as SingleTransactionApiResponse;
 
       if (apiResponse.error !== 0) {
         throw new Error(apiResponse.message || "API returned error");
@@ -93,17 +96,19 @@ class TransactionService {
       // Handle cả trường hợp API trả về format mới hoặc cũ
       let transactions: Transaction[] = [];
 
-      if (response.data.error !== undefined) {
+      if ((response.data as any)?.error !== undefined) {
         // Format mới: { error: 0, message: "...", data: { transactions: [...] } }
-        if (response.data.error !== 0) {
-          throw new Error(response.data.message || "API returned error");
+        const apiResponse = response.data as SimpleTransactionApiResponse;
+        if (apiResponse.error !== 0) {
+          throw new Error(apiResponse.message || "API returned error");
         }
-        transactions = response.data.data?.transactions || [];
+        transactions = apiResponse.data?.transactions || [];
       } else {
         // Format cũ: trực tiếp array hoặc { transactions: [...] }
-        transactions = Array.isArray(response.data)
-          ? response.data
-          : response.data.transactions || [];
+        const data = response.data as
+          | Transaction[]
+          | { transactions: Transaction[] };
+        transactions = Array.isArray(data) ? data : data.transactions || [];
       }
 
       return {
@@ -146,15 +151,17 @@ class TransactionService {
 
       let transactions: Transaction[] = [];
 
-      if (response.data.error !== undefined) {
-        if (response.data.error !== 0) {
-          throw new Error(response.data.message || "API returned error");
+      if ((response.data as any)?.error !== undefined) {
+        const apiResponse = response.data as SimpleTransactionApiResponse;
+        if (apiResponse.error !== 0) {
+          throw new Error(apiResponse.message || "API returned error");
         }
-        transactions = response.data.data?.transactions || [];
+        transactions = apiResponse.data?.transactions || [];
       } else {
-        transactions = Array.isArray(response.data)
-          ? response.data
-          : response.data.transactions || [];
+        const data = response.data as
+          | Transaction[]
+          | { transactions: Transaction[] };
+        transactions = Array.isArray(data) ? data : data.transactions || [];
       }
 
       return {
@@ -197,15 +204,17 @@ class TransactionService {
 
       let transactions: Transaction[] = [];
 
-      if (response.data.error !== undefined) {
-        if (response.data.error !== 0) {
-          throw new Error(response.data.message || "API returned error");
+      if ((response.data as any)?.error !== undefined) {
+        const apiResponse = response.data as SimpleTransactionApiResponse;
+        if (apiResponse.error !== 0) {
+          throw new Error(apiResponse.message || "API returned error");
         }
-        transactions = response.data.data?.transactions || [];
+        transactions = apiResponse.data?.transactions || [];
       } else {
-        transactions = Array.isArray(response.data)
-          ? response.data
-          : response.data.transactions || [];
+        const data = response.data as
+          | Transaction[]
+          | { transactions: Transaction[] };
+        transactions = Array.isArray(data) ? data : data.transactions || [];
       }
 
       return {
@@ -246,11 +255,21 @@ class TransactionService {
         throw new Error(response.message || "Failed to fetch monthly income");
       }
 
-      if (response.data.error !== undefined && response.data.error !== 0) {
-        throw new Error(response.data.message || "API returned error");
+      const apiResponse = response.data as
+        | { error?: number; message?: string; data?: MonthlyIncomeResponse }
+        | MonthlyIncomeResponse;
+
+      if (
+        "error" in apiResponse &&
+        apiResponse.error !== undefined &&
+        apiResponse.error !== 0
+      ) {
+        throw new Error(apiResponse.message || "API returned error");
       }
 
-      return response.data.data || response.data;
+      return "data" in apiResponse && apiResponse.data
+        ? apiResponse.data
+        : (apiResponse as MonthlyIncomeResponse);
     } catch (error) {
       console.error("Error fetching monthly income:", error);
       throw error;
@@ -322,11 +341,21 @@ class TransactionService {
         throw new Error(response.message || "Failed to process refund");
       }
 
-      if (response.data.error !== undefined && response.data.error !== 0) {
-        throw new Error(response.data.message || "API returned error");
+      const apiResponse = response.data as
+        | SingleTransactionApiResponse
+        | Transaction;
+
+      if (
+        "error" in apiResponse &&
+        apiResponse.error !== undefined &&
+        apiResponse.error !== 0
+      ) {
+        throw new Error(apiResponse.message || "API returned error");
       }
 
-      return response.data.data || response.data;
+      return "data" in apiResponse && apiResponse.data
+        ? apiResponse.data
+        : (apiResponse as Transaction);
     } catch (error) {
       console.error("Error processing refund:", error);
       throw error;
@@ -348,11 +377,21 @@ class TransactionService {
         throw new Error(response.message || "Failed to cancel transaction");
       }
 
-      if (response.data.error !== undefined && response.data.error !== 0) {
-        throw new Error(response.data.message || "API returned error");
+      const apiResponse = response.data as
+        | SingleTransactionApiResponse
+        | Transaction;
+
+      if (
+        "error" in apiResponse &&
+        apiResponse.error !== undefined &&
+        apiResponse.error !== 0
+      ) {
+        throw new Error(apiResponse.message || "API returned error");
       }
 
-      return response.data.data || response.data;
+      return "data" in apiResponse && apiResponse.data
+        ? apiResponse.data
+        : (apiResponse as Transaction);
     } catch (error) {
       console.error("Error cancelling transaction:", error);
       throw error;
