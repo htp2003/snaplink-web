@@ -76,20 +76,20 @@ const BookingManagement: React.FC = () => {
   );
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // Status labels and colors
+  // Status labels and colors - FIXED FOR ACTUAL API
   const getStatusLabel = (status: BookingStatus): string => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return "Chờ xác nhận";
-      case "confirmed":
+      case "Confirmed":
         return "Đã xác nhận";
-      case "in_progress":
+      case "InProgress":
         return "Đang thực hiện";
-      case "completed":
+      case "Completed":
         return "Hoàn thành";
-      case "cancelled":
+      case "Cancelled":
         return "Đã hủy";
-      case "refunded":
+      case "Refunded":
         return "Đã hoàn tiền";
       default:
         return "Không xác định";
@@ -98,17 +98,17 @@ const BookingManagement: React.FC = () => {
 
   const getStatusColor = (status: BookingStatus): string => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return "bg-yellow-100 text-yellow-800";
-      case "confirmed":
+      case "Confirmed":
         return "bg-blue-100 text-blue-800";
-      case "in_progress":
+      case "InProgress":
         return "bg-purple-100 text-purple-800";
-      case "completed":
+      case "Completed":
         return "bg-green-100 text-green-800";
-      case "cancelled":
+      case "Cancelled":
         return "bg-red-100 text-red-800";
-      case "refunded":
+      case "Refunded":
         return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -117,13 +117,13 @@ const BookingManagement: React.FC = () => {
 
   const getStatusIcon = (status: BookingStatus) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return <Clock className="w-4 h-4" />;
-      case "confirmed":
+      case "Confirmed":
         return <Check className="w-4 h-4" />;
-      case "completed":
+      case "Completed":
         return <CheckCircle className="w-4 h-4" />;
-      case "cancelled":
+      case "Cancelled":
         return <XCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
@@ -133,7 +133,7 @@ const BookingManagement: React.FC = () => {
   // Event handlers
   const handleViewBooking = async (booking: BookingData) => {
     try {
-      const bookingData = await getBookingDetails(booking.id);
+      const bookingData = await getBookingDetails(booking.bookingId);
       setSelectedBooking(bookingData || booking);
       setShowDetailModal(true);
     } catch (error) {
@@ -155,7 +155,7 @@ const BookingManagement: React.FC = () => {
     if (selectedBookings.length === filteredAndSortedBookings.length) {
       setSelectedBookings([]);
     } else {
-      setSelectedBookings(filteredAndSortedBookings.map((b) => b.id));
+      setSelectedBookings(filteredAndSortedBookings.map((b) => b.bookingId));
     }
   };
 
@@ -308,12 +308,12 @@ const BookingManagement: React.FC = () => {
               className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ xác nhận</option>
-              <option value="confirmed">Đã xác nhận</option>
-              <option value="in_progress">Đang thực hiện</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="cancelled">Đã hủy</option>
-              <option value="refunded">Đã hoàn tiền</option>
+              <option value="Pending">Chờ xác nhận</option>
+              <option value="Confirmed">Đã xác nhận</option>
+              <option value="InProgress">Đang thực hiện</option>
+              <option value="Completed">Hoàn thành</option>
+              <option value="Cancelled">Đã hủy</option>
+              <option value="Refunded">Đã hoàn tiền</option>
             </select>
           </div>
 
@@ -349,14 +349,14 @@ const BookingManagement: React.FC = () => {
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => bulkUpdateStatus("confirmed")}
+                onClick={() => bulkUpdateStatus("Confirmed")}
                 disabled={actionLoading}
                 className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
               >
                 Confirm
               </button>
               <button
-                onClick={() => bulkUpdateStatus("cancelled")}
+                onClick={() => bulkUpdateStatus("Cancelled")}
                 disabled={actionLoading}
                 className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
@@ -375,242 +375,260 @@ const BookingManagement: React.FC = () => {
 
       {/* Booking Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Scroll container với sticky header */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedBookings.length ===
-                        filteredAndSortedBookings.length &&
-                      filteredAndSortedBookings.length > 0
-                    }
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("date")}
-                >
-                  Booking ID & Date
-                  {sortBy === "date" && (
-                    <span className="ml-1">
-                      {sortOrder === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("customer")}
-                >
-                  Khách hàng
-                  {sortBy === "customer" && (
-                    <span className="ml-1">
-                      {sortOrder === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("photographer")}
-                >
-                  Nhiếp ảnh gia
-                  {sortBy === "photographer" && (
-                    <span className="ml-1">
-                      {sortOrder === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Địa điểm
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thời gian
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("status")}
-                >
-                  Trạng thái
-                  {sortBy === "status" && (
-                    <span className="ml-1">
-                      {sortOrder === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("amount")}
-                >
-                  Số tiền
-                  {sortBy === "amount" && (
-                    <span className="ml-1">
-                      {sortOrder === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+          <div className="min-w-[1200px]">
+            {" "}
+            {/* Minimum width to force horizontal scroll */}
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="px-6 py-3 text-left w-12">
                     <input
                       type="checkbox"
-                      checked={selectedBookings.includes(booking.id)}
-                      onChange={() => handleSelectBooking(booking.id)}
+                      checked={
+                        selectedBookings.length ===
+                          filteredAndSortedBookings.length &&
+                        filteredAndSortedBookings.length > 0
+                      }
+                      onChange={handleSelectAll}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        #
-                        {booking.bookingCode ||
-                          booking.id.toString().padStart(4, "0")}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDateTime(booking.createdAt)}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="ml-3">
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[180px]"
+                    onClick={() => handleSort("date")}
+                  >
+                    Booking ID & Date
+                    {sortBy === "date" && (
+                      <span className="ml-1">
+                        {sortOrder === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[200px]"
+                    onClick={() => handleSort("customer")}
+                  >
+                    Khách hàng
+                    {sortBy === "customer" && (
+                      <span className="ml-1">
+                        {sortOrder === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[200px]"
+                    onClick={() => handleSort("photographer")}
+                  >
+                    Nhiếp ảnh gia
+                    {sortBy === "photographer" && (
+                      <span className="ml-1">
+                        {sortOrder === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                    Địa điểm
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                    Thời gian
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[120px]"
+                    onClick={() => handleSort("status")}
+                  >
+                    Trạng thái
+                    {sortBy === "status" && (
+                      <span className="ml-1">
+                        {sortOrder === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[120px]"
+                    onClick={() => handleSort("amount")}
+                  >
+                    Số tiền
+                    {sortBy === "amount" && (
+                      <span className="ml-1">
+                        {sortOrder === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAndSortedBookings.map((booking) => (
+                  <tr key={booking.bookingId} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedBookings.includes(booking.bookingId)}
+                        onChange={() => handleSelectBooking(booking.bookingId)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {getCustomerName(booking)}
+                          #{booking.bookingId.toString().padStart(4, "0")}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {booking.customer?.email}
+                          {formatDateTime(booking.createdAt)}
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Camera className="h-4 w-4 text-purple-600" />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {booking.userName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.userEmail}
+                          </div>
+                        </div>
                       </div>
-                      <div className="ml-3">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+                          <Camera className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {booking.photographerName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.photographerEmail}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                        <div className="text-sm text-gray-900">
+                          {booking.locationName || "External Location"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {getPhotographerName(booking)}
+                          {new Date(booking.startDatetime).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {booking.photographer?.email}
+                          {new Date(booking.startDatetime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}{" "}
+                          -{" "}
+                          {new Date(booking.endDatetime).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                      <div className="text-sm text-gray-900">
-                        {getLocationName(booking)}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {new Date(booking.startDatetime).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(booking.startDatetime).toLocaleTimeString(
-                          "vi-VN",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}{" "}
-                        -{" "}
-                        {new Date(booking.endDatetime).toLocaleTimeString(
-                          "vi-VN",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1 ${getStatusColor(
-                        booking.status
-                      )}`}
-                    >
-                      {getStatusIcon(booking.status)}
-                      {getStatusLabel(booking.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {booking.totalAmount
-                        ? formatCurrency(booking.totalAmount)
-                        : "N/A"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleViewBooking(booking)}
-                        className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50"
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1 ${getStatusColor(
+                          booking.status
+                        )}`}
                       >
-                        Xem
-                      </button>
+                        {getStatusIcon(booking.status)}
+                        {getStatusLabel(booking.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {booking.totalPrice
+                          ? formatCurrency(booking.totalPrice)
+                          : "N/A"}
+                      </div>
+                      {booking.paymentStatus && (
+                        <div className="text-xs text-gray-500">
+                          Payment: {booking.paymentStatus}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleViewBooking(booking)}
+                          className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50"
+                        >
+                          Xem
+                        </button>
 
-                      {booking.status === "pending" && (
-                        <>
+                        {booking.status === "Pending" && (
+                          <>
+                            <button
+                              onClick={() =>
+                                handleConfirmBooking(booking.bookingId)
+                              }
+                              disabled={actionLoading}
+                              className="text-green-600 hover:text-green-900 px-2 py-1 rounded hover:bg-green-50 disabled:opacity-50"
+                            >
+                              Xác nhận
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleCancelBooking(booking.bookingId)
+                              }
+                              disabled={actionLoading}
+                              className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                            >
+                              Hủy
+                            </button>
+                          </>
+                        )}
+
+                        {booking.status === "Confirmed" && (
                           <button
-                            onClick={() => handleConfirmBooking(booking.id)}
+                            onClick={() =>
+                              handleCompleteBooking(booking.bookingId)
+                            }
                             disabled={actionLoading}
                             className="text-green-600 hover:text-green-900 px-2 py-1 rounded hover:bg-green-50 disabled:opacity-50"
                           >
-                            Xác nhận
+                            Hoàn thành
                           </button>
-                          <button
-                            onClick={() => handleCancelBooking(booking.id)}
-                            disabled={actionLoading}
-                            className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50 disabled:opacity-50"
-                          >
-                            Hủy
-                          </button>
-                        </>
-                      )}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredAndSortedBookings.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                {searchTerm || statusFilter !== "all" || dateFilter !== "all"
+                  ? "Không tìm thấy booking nào phù hợp với bộ lọc"
+                  : "Chưa có booking nào trong hệ thống"}
+              </div>
+            )}
+          </div>
 
-                      {booking.status === "confirmed" && (
-                        <button
-                          onClick={() => handleCompleteBooking(booking.id)}
-                          disabled={actionLoading}
-                          className="text-green-600 hover:text-green-900 px-2 py-1 rounded hover:bg-green-50 disabled:opacity-50"
-                        >
-                          Hoàn thành
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {filteredAndSortedBookings.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              {searchTerm || statusFilter !== "all" || dateFilter !== "all"
-                ? "Không tìm thấy booking nào phù hợp với bộ lọc"
-                : "Chưa có booking nào trong hệ thống"}
-            </div>
+          {/* Horizontal scroll indicator */}
+          {filteredAndSortedBookings.length > 0 && (
+            <div className="bg-gray-50 px-6 py-2 text-xs text-gray-500 border-t"></div>
           )}
         </div>
       </div>
@@ -633,28 +651,24 @@ const BookingManagement: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium text-gray-900">Booking ID:</h4>
-                  <p className="text-gray-600">
-                    #{selectedBooking.bookingCode || selectedBooking.id}
-                  </p>
+                  <p className="text-gray-600">#{selectedBooking.bookingId}</p>
                 </div>
 
                 <div>
                   <h4 className="font-medium text-gray-900">Khách hàng:</h4>
-                  <p className="text-gray-600">
-                    {getCustomerName(selectedBooking)}
-                  </p>
+                  <p className="text-gray-600">{selectedBooking.userName}</p>
                   <p className="text-sm text-gray-500">
-                    {selectedBooking.customer?.email}
+                    {selectedBooking.userEmail}
                   </p>
                 </div>
 
                 <div>
                   <h4 className="font-medium text-gray-900">Nhiếp ảnh gia:</h4>
                   <p className="text-gray-600">
-                    {getPhotographerName(selectedBooking)}
+                    {selectedBooking.photographerName}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {selectedBooking.photographer?.email}
+                    {selectedBooking.photographerEmail}
                   </p>
                 </div>
 
@@ -688,12 +702,17 @@ const BookingManagement: React.FC = () => {
                   </span>
                 </div>
 
-                {selectedBooking.totalAmount && (
+                {selectedBooking.totalPrice && (
                   <div>
                     <h4 className="font-medium text-gray-900">Tổng tiền:</h4>
                     <p className="text-gray-600">
-                      {formatCurrency(selectedBooking.totalAmount)}
+                      {formatCurrency(selectedBooking.totalPrice)}
                     </p>
+                    {selectedBooking.paymentStatus && (
+                      <p className="text-sm text-gray-500">
+                        Payment Status: {selectedBooking.paymentStatus}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

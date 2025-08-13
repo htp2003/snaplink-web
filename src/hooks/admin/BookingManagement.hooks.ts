@@ -55,13 +55,13 @@ export const useBookingManagement = () => {
       let success = false;
 
       switch (status) {
-        case "confirmed":
+        case "Confirmed":
           success = await bookingService.confirmBooking(bookingId);
           break;
-        case "cancelled":
+        case "Cancelled":
           success = await bookingService.cancelBooking(bookingId);
           break;
-        case "completed":
+        case "Completed":
           success = await bookingService.completeBooking(bookingId);
           break;
         default:
@@ -221,20 +221,20 @@ export const useBookingFilters = (bookingList: BookingData[]) => {
           bValue = new Date(b.startDatetime).getTime();
           break;
         case "customer":
-          aValue = getCustomerName(a).toLowerCase();
-          bValue = getCustomerName(b).toLowerCase();
+          aValue = a.userName?.toLowerCase() || "";
+          bValue = b.userName?.toLowerCase() || "";
           break;
         case "photographer":
-          aValue = getPhotographerName(a).toLowerCase();
-          bValue = getPhotographerName(b).toLowerCase();
+          aValue = a.photographerName?.toLowerCase() || "";
+          bValue = b.photographerName?.toLowerCase() || "";
           break;
         case "status":
           aValue = a.status;
           bValue = b.status;
           break;
         case "amount":
-          aValue = a.totalAmount || 0;
-          bValue = b.totalAmount || 0;
+          aValue = a.totalPrice || 0;
+          bValue = b.totalPrice || 0;
           break;
         default:
           return 0;
@@ -315,7 +315,7 @@ export const useBookingActions = (
     async (bookingId: number) => {
       setActionLoading(true);
       try {
-        const success = await updateBookingStatus(bookingId, "confirmed");
+        const success = await updateBookingStatus(bookingId, "Confirmed");
         if (success) {
           toast.success("Booking confirmed successfully");
         } else {
@@ -333,7 +333,7 @@ export const useBookingActions = (
     async (bookingId: number) => {
       setActionLoading(true);
       try {
-        const success = await updateBookingStatus(bookingId, "cancelled");
+        const success = await updateBookingStatus(bookingId, "Cancelled");
         if (success) {
           toast.success("Booking cancelled successfully");
         } else {
@@ -351,7 +351,7 @@ export const useBookingActions = (
     async (bookingId: number) => {
       setActionLoading(true);
       try {
-        const success = await updateBookingStatus(bookingId, "completed");
+        const success = await updateBookingStatus(bookingId, "Completed");
         if (success) {
           toast.success("Booking completed successfully");
         } else {

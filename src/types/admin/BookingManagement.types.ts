@@ -1,31 +1,41 @@
 // src/types/admin/BookingManagement.types.ts
 
 export interface BookingData {
-  id: number;
-  bookingCode?: string;
+  // API fields - exact match
+  bookingId: number;
   userId: number;
+  userName: string;
+  userEmail: string;
   photographerId: number;
+  photographerName: string;
+  photographerEmail: string;
   locationId?: number;
+  locationName?: string;
+  locationAddress?: string;
   startDatetime: string;
   endDatetime: string;
-  durationHours?: number;
-  photographerFee?: number;
-  venueFee?: number;
-  totalAmount?: number;
   status:
-    | "pending"
-    | "confirmed"
-    | "in_progress"
-    | "completed"
-    | "cancelled"
-    | "refunded";
+    | "Pending"
+    | "Confirmed"
+    | "InProgress"
+    | "Completed"
+    | "Cancelled"
+    | "Refunded";
   specialRequests?: string;
-  cancellationReason?: string;
-  cancelledBy?: string;
-  confirmedAt?: string;
-  completedAt?: string;
+  totalPrice?: number;
   createdAt: string;
   updatedAt: string;
+  hasPayment: boolean;
+  paymentStatus: string;
+  paymentAmount?: number;
+  escrowBalance?: number;
+  hasEscrowFunds: boolean;
+  durationHours?: number;
+  pricePerHour?: number;
+
+  // Computed fields for compatibility
+  id?: number; // Will map to bookingId
+  totalAmount?: number; // Will map to totalPrice
 
   // Populated data từ User service
   customer?: {
@@ -80,7 +90,13 @@ export interface UpdateBookingRequest {
   status?: string;
 }
 
-export type BookingStatus = BookingData["status"];
+export type BookingStatus =
+  | "Pending"
+  | "Confirmed"
+  | "InProgress"
+  | "Completed"
+  | "Cancelled"
+  | "Refunded";
 export type SortField =
   | "date"
   | "customer"

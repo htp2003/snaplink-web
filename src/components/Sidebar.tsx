@@ -1,4 +1,4 @@
-// components/Sidebar.tsx - UPDATED VERSION
+// components/Sidebar.tsx - FIXED VERSION
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, X, Menu } from "lucide-react";
@@ -71,12 +71,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={`
-      bg-white shadow-lg transition-all duration-300 ease-in-out h-full
-      ${collapsed ? "w-16" : "w-64"}
-    `}
+        bg-white shadow-lg transition-all duration-300 ease-in-out h-full
+        relative flex flex-col
+        ${collapsed ? "w-16" : "w-64"}
+      `}
     >
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 flex-shrink-0">
         {!collapsed && (
           <h1 className={`text-xl font-bold ${colors.text}`}>{title}</h1>
         )}
@@ -88,8 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="mt-8 px-4 space-y-2">
+      {/* Navigation - Takes up remaining space */}
+      <nav className="flex-1 mt-8 px-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
           const Icon = item.icon;
           const current = isCurrentPath(item.href);
@@ -125,8 +126,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* User info and logout */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+      {/* User info and logout - Fixed at bottom of sidebar only */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200">
         <div
           className={`flex items-center ${
             collapsed ? "justify-center" : "justify-between"

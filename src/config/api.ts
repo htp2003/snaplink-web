@@ -60,4 +60,25 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_CREATE: "/api/Notification/CreateNotification",
   NOTIFICATIONS_UPDATE: "/api/Notification/UpdateNotification/{id}",
   NOTIFICATIONS_DELETE: "/api/Notification/DeleteNotification/{id}",
+
+  // Transaction history endpoints
+  USER_TRANSACTION_HISTORY: "/api/Transaction/history/user/{userId}",
+  PHOTOGRAPHER_TRANSACTION_HISTORY:
+    "/api/Transaction/history/photographer/{photographerId}",
+  LOCATION_OWNER_TRANSACTION_HISTORY:
+    "/api/Transaction/history/location-owner/{locationOwnerId}",
+
+  // Single transaction
+  TRANSACTION_BY_ID: "/api/Transaction/{transactionId}",
+
+  // Monthly income
+  MONTHLY_INCOME: "/api/Transaction/monthly-income/{userId}",
+
+  // Refund/Cancel (these might need to be implemented in backend)
+  PROCESS_REFUND: "/api/Transaction/{transactionId}/refund",
+  CANCEL_TRANSACTION: "/api/Transaction/{transactionId}/cancel",
+
+  // Admin endpoints (might need to be implemented)
+  ALL_TRANSACTIONS: "/api/Transaction/all",
+  TRANSACTION_STATS: "/api/Transaction/stats",
 };
