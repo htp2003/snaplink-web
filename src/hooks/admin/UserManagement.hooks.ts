@@ -22,13 +22,7 @@ export const useUserManagement = () => {
   const loadAllUsersByRoles = useCallback(async () => {
     try {
       const token = authService.getToken();
-      const roleTypes = [
-        "admin",
-        "moderator",
-        "photographer",
-        "locationowner",
-        "user",
-      ];
+      const roleTypes = ["admin", "moderator", "photographer", "owner", "user"];
 
       const rolePromises = roleTypes.map(async (role) => {
         try {
@@ -89,7 +83,7 @@ export const useUserManagement = () => {
             admin: "admin",
             moderator: "moderator",
             photographer: "photographer",
-            "venue owner": "locationowner",
+            "venue owner": "owner",
             user: "user",
           };
 
