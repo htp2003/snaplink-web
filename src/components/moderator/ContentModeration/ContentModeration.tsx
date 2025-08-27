@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Shield,
   Image as ImageIcon,
-  MessageSquare,
+  Star, // Changed from MessageSquare to Star for ratings
   Users,
   MapPin,
   Calendar,
@@ -13,7 +13,6 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Star,
   ChevronRight,
   ArrowLeft,
   Grid3X3,
@@ -22,20 +21,26 @@ import {
   Search,
   Camera,
   Building,
+  Clock,
+  DollarSign,
+  Phone,
+  Mail,
+  User,
 } from "lucide-react";
 import { useContentModeration } from "../../../hooks/moderator/ContentModeration.hooks";
 import {
   ImageItem,
-  ReviewItem,
+  RatingItem, // Changed from ReviewItem
   PhotographerModerationItem,
   VenueModerationItem,
   EventModerationItem,
   ContentType,
   VerificationStatus,
+  BookingStatus,
 } from "../../../types/moderator/ContentModeration.types";
 import ContentDetailModal from "./ContentDetailModal";
 
-// ===== NEW INTERFACES FOR NAVIGATION =====
+// ===== NAVIGATION INTERFACES (Keep existing) =====
 interface NavigationState {
   level: "category" | "itemList" | "imageList";
   category?: string;
@@ -106,12 +111,12 @@ const StatsDashboard: React.FC<{ stats: any }> = ({ stats }) => {
       borderColor: "border-red-200",
     },
     {
-      title: "Total Images",
-      value: stats.flaggedImages,
-      icon: ImageIcon,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
+      title: "Total Ratings", // Changed from "Total Images"
+      value: stats.totalRatings,
+      icon: Star, // Changed icon
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
     },
   ];
 
@@ -139,7 +144,7 @@ const StatsDashboard: React.FC<{ stats: any }> = ({ stats }) => {
   );
 };
 
-// ===== NEW: Enhanced Image Categories Overview =====
+// ===== IMAGE CATEGORIES OVERVIEW (Keep existing) =====
 const ImageCategoriesOverview: React.FC<{
   images: ImageItem[];
   photographers: PhotographerModerationItem[];
@@ -256,7 +261,7 @@ const ImageCategoriesOverview: React.FC<{
   );
 };
 
-// ===== NEW: Photographer List Component =====
+// ===== PHOTOGRAPHER LIST COMPONENTS (Keep existing) =====
 const PhotographerListView: React.FC<{
   photographers: PhotographerModerationItem[];
   onBack: () => void;
@@ -396,7 +401,7 @@ const PhotographerListCard: React.FC<{
             </div>
             <span className="text-sm text-gray-600">
               {photographer.averageRating.toFixed(1)} (
-              {photographer.totalReviews} reviews)
+              {photographer.totalReviews} ratings)
             </span>
           </div>
 
@@ -412,7 +417,7 @@ const PhotographerListCard: React.FC<{
   );
 };
 
-// ===== NEW: Location List Component =====
+// ===== LOCATION LIST COMPONENTS (Keep existing) =====
 const LocationListView: React.FC<{
   venues: VenueModerationItem[];
   onBack: () => void;
@@ -537,7 +542,7 @@ const LocationListCard: React.FC<{
   );
 };
 
-// ===== NEW: Event List Component =====
+// ===== EVENT LIST COMPONENTS (Keep existing) =====
 const EventListView: React.FC<{
   events: EventModerationItem[];
   onBack: () => void;
@@ -660,7 +665,7 @@ const EventListCard: React.FC<{
   );
 };
 
-// ===== UPDATED: Image Gallery Component =====
+// ===== IMAGE GALLERY COMPONENT (Keep existing) =====
 const ImageGallery: React.FC<{
   images: ImageItem[];
   itemInfo: { type: string; name: string; id: number };
@@ -797,7 +802,7 @@ const ImageGallery: React.FC<{
   );
 };
 
-// Grid View Image Card (unchanged)
+// ===== IMAGE CARD COMPONENTS (Keep existing) =====
 const ImageGridCard: React.FC<{
   image: ImageItem;
   onDelete: (id: number) => void;
@@ -862,7 +867,6 @@ const ImageGridCard: React.FC<{
   </div>
 );
 
-// List View Image Item (unchanged)
 const ImageListItem: React.FC<{
   image: ImageItem;
   onDelete: (id: number) => void;
@@ -932,6 +936,106 @@ const ImageListItem: React.FC<{
     </div>
   </div>
 );
+
+// ===== NEW: RATING CARD COMPONENT (Replace ReviewCard) =====
+const RatingCard: React.FC<{
+  rating: RatingItem;
+  onDelete: (id: number) => void;
+  onViewDetails: (rating: RatingItem) => void;
+  loading?: boolean;
+}> = ({ rating, onDelete, onViewDetails, loading }) => {
+  const getBookingStatusColor = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "confirmed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "cancelled":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      {/* Header with rating */}
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex text-yellow-400">
+            {[...Array(5)].map((_, i) => (
+              <span key={i} className="text-lg">
+                {i < rating.score ? "★" : "☆"}
+              </span>
+            ))}
+          </div>
+          <span className="text-sm text-gray-600 font-medium">
+            ({rating.score}/5)
+          </span>
+          <span className="text-xs text-gray-500">
+            Booking ID: {rating.bookingId}
+          </span>
+        </div>
+        <button
+          onClick={() => onDelete(rating.id)}
+          disabled={loading}
+          className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1"
+          title="Delete Rating"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Basic Info (since we don't have booking details yet) */}
+      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              Reviewer ID: {rating.reviewerUserId}
+            </span>
+            <span className="text-xs">
+              {new Date(rating.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+
+          {rating.photographerId && (
+            <div className="flex items-center">
+              <Camera className="w-4 h-4 mr-2" />
+              <span>Photographer ID: {rating.photographerId}</span>
+            </div>
+          )}
+
+          {rating.locationId && (
+            <div className="flex items-center">
+              <MapPin className="w-4 h-4 mr-2" />
+              <span>Location ID: {rating.locationId}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Rating Comment */}
+      {rating.comment && (
+        <div className="mb-3">
+          <p className="text-gray-700 line-clamp-3 text-sm">{rating.comment}</p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-gray-500">Rating ID: {rating.id}</span>
+        <button
+          onClick={() => onViewDetails(rating)}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+        >
+          View Details
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // Photographer Card Component (simplified)
 const PhotographerCard: React.FC<{
@@ -1043,50 +1147,12 @@ const PhotographerCard: React.FC<{
   );
 };
 
-// Review Card Component (unchanged)
-const ReviewCard: React.FC<{
-  review: ReviewItem;
-  onDelete: (id: number) => void;
-  loading?: boolean;
-}> = ({ review, onDelete, loading }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex items-center">
-        <div className="flex text-yellow-400 mr-2">
-          {[...Array(5)].map((_, i) => (
-            <span key={i} className="text-lg">
-              {i < review.rating ? "★" : "☆"}
-            </span>
-          ))}
-        </div>
-        <span className="text-sm text-gray-600 font-medium">
-          ({review.rating}/5)
-        </span>
-      </div>
-      <button
-        onClick={() => onDelete(review.id)}
-        disabled={loading}
-        className="text-red-600 hover:text-red-800 disabled:opacity-50 p-1"
-        title="Delete Review"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-
-    <p className="text-gray-700 mb-3 line-clamp-3">{review.comment}</p>
-
-    <p className="text-xs text-gray-500">
-      {new Date(review.createdAt).toLocaleDateString()}
-    </p>
-  </div>
-);
-
-// ===== MAIN COMPONENT WITH ENHANCED NAVIGATION =====
+// ===== MAIN COMPONENT WITH RATING MANAGEMENT =====
 const ContentModeration: React.FC = () => {
   const {
     loading,
     images,
-    reviews,
+    ratings, // Changed from reviews
     photographers,
     venues,
     events,
@@ -1095,12 +1161,13 @@ const ContentModeration: React.FC = () => {
     apiStatus,
     setActiveTab,
     deleteImage,
-    deleteReview,
+    deleteRating, // Changed from deleteReview
+    updateRating, // New method
     setImagePrimary,
     verifyPhotographer,
     testAPI,
     refreshData,
-    // NEW: Item-specific image methods
+    // Item-specific image methods
     itemImages,
     itemImagesLoading,
     loadPhotographerImages,
@@ -1124,9 +1191,9 @@ const ContentModeration: React.FC = () => {
     }
   };
 
-  const handleDeleteReview = async (reviewId: number) => {
-    if (confirm("Are you sure you want to delete this review?")) {
-      await deleteReview(reviewId);
+  const handleDeleteRating = async (ratingId: number) => {
+    if (confirm("Are you sure you want to delete this rating?")) {
+      await deleteRating(ratingId);
     }
   };
 
@@ -1147,13 +1214,13 @@ const ContentModeration: React.FC = () => {
     setDetailModalOpen(true);
   };
 
-  // ===== NEW NAVIGATION HANDLERS =====
+  // Navigation handlers (keep existing)
   const handleSelectCategory = (category: string) => {
     setNavigationState({
       level: "itemList",
       category,
     });
-    clearItemImages(); // Clear previous item images
+    clearItemImages();
   };
 
   const handleSelectItem = async (item: any, category: string) => {
@@ -1163,7 +1230,7 @@ const ContentModeration: React.FC = () => {
       selectedItem: item,
     });
 
-    // Load images for this specific item using the enhanced methods
+    // Load images for this specific item
     if (category === "photographer") {
       const photographerId = item.photographerId || item.id;
       await loadPhotographerImages(photographerId);
@@ -1223,10 +1290,10 @@ const ContentModeration: React.FC = () => {
     [
       { key: "images", label: "Images", icon: ImageIcon, count: images.length },
       {
-        key: "reviews",
-        label: "Reviews",
-        icon: MessageSquare,
-        count: reviews.length,
+        key: "ratings", // Changed from "reviews"
+        label: "Ratings", // Changed from "Reviews"
+        icon: Star, // Changed from MessageSquare
+        count: ratings.length, // Changed from reviews.length
       },
       {
         key: "photographers",
@@ -1382,42 +1449,43 @@ const ContentModeration: React.FC = () => {
 
                   {navigationState.level === "imageList" && (
                     <ImageGallery
-                      images={itemImages} // Use itemImages instead of filteredImages
+                      images={itemImages}
                       itemInfo={getItemInfo()}
                       onBack={handleBackToItemList}
                       onDelete={handleDeleteImage}
                       onView={handleViewDetails}
                       onSetPrimary={handleSetImagePrimary}
-                      loading={itemImagesLoading} // Use itemImagesLoading instead of loading
+                      loading={itemImagesLoading}
                     />
                   )}
                 </>
               )}
 
-              {/* Reviews Tab (unchanged) */}
-              {activeTab === "reviews" && (
+              {/* Ratings Tab (Changed from Reviews Tab) */}
+              {activeTab === "ratings" && (
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900">
-                      Review Management
+                      Rating Management
                     </h2>
                     <div className="text-sm text-gray-500">
-                      {reviews.length} reviews total
+                      {ratings.length} ratings total
                     </div>
                   </div>
 
-                  {reviews.length === 0 ? (
+                  {ratings.length === 0 ? (
                     <div className="text-center py-12">
-                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No reviews found</p>
+                      <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No ratings found</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {reviews.map((review) => (
-                        <ReviewCard
-                          key={review.id}
-                          review={review}
-                          onDelete={handleDeleteReview}
+                      {ratings.map((rating) => (
+                        <RatingCard
+                          key={rating.id}
+                          rating={rating}
+                          onDelete={handleDeleteRating}
+                          onViewDetails={handleViewDetails}
                           loading={loading}
                         />
                       ))}

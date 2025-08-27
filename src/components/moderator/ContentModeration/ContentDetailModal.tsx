@@ -16,10 +16,11 @@ import {
   Users,
   Clock,
   Image as ImageIcon,
+  AlertTriangle,
 } from "lucide-react";
 import {
   ImageItem,
-  ReviewItem,
+  RatingItem,
   PhotographerModerationItem,
   VenueModerationItem,
   EventModerationItem,
@@ -28,7 +29,7 @@ import {
 
 type ContentItem =
   | ImageItem
-  | ReviewItem
+  | RatingItem
   | PhotographerModerationItem
   | VenueModerationItem
   | EventModerationItem;
@@ -48,14 +49,12 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
   onApprove,
   onReject,
 }) => {
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
     }
-
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -63,10 +62,9 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   if (!isOpen || !content) return null;
 
-  // Type guards to determine content type
   const isImage = (item: ContentItem): item is ImageItem => "url" in item;
-  const isReview = (item: ContentItem): item is ReviewItem =>
-    "rating" in item && "comment" in item;
+  const isRating = (item: ContentItem): item is RatingItem =>
+    "score" in item && "bookingId" in item;
   const isPhotographer = (
     item: ContentItem
   ): item is PhotographerModerationItem =>
@@ -78,7 +76,7 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const getContentTitle = (): string => {
     if (isImage(content)) return content.caption || "Image Content";
-    if (isReview(content)) return `Review - ${content.rating} stars`;
+    if (isRating(content)) return `Rating - ${content.score} stars`;
     if (isPhotographer(content)) return content.fullName;
     if (isVenue(content)) return content.venueName;
     if (isEvent(content)) return content.eventName;
@@ -87,7 +85,7 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const getContentType = (): string => {
     if (isImage(content)) return "Image";
-    if (isReview(content)) return "Review";
+    if (isRating(content)) return "Rating";
     if (isPhotographer(content)) return "Photographer";
     if (isVenue(content)) return "Venue";
     if (isEvent(content)) return "Event";
@@ -96,17 +94,21 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const getStatusColor = (status?: string): string => {
     if (!status) return "bg-gray-100 text-gray-800";
-
     switch (status.toLowerCase()) {
       case "verified":
       case "approved":
       case "active":
+      case "completed":
         return "bg-green-100 text-green-800";
       case "rejected":
       case "suspended":
+      case "cancelled":
         return "bg-red-100 text-red-800";
       case "pending":
+      case "confirmed":
         return "bg-yellow-100 text-yellow-800";
+      case "in_progress":
+        return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -116,13 +118,14 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
     if (isPhotographer(content)) return content.verificationStatus;
     if (isVenue(content)) return content.isActive ? "Active" : "Inactive";
     if (isEvent(content)) return content.status;
+    if (isRating(content) && content.booking) return content.booking.status;
     return "N/A";
   };
 
   const canApproveReject = (): boolean => {
     if (isPhotographer(content))
       return content.verificationStatus === VerificationStatus.PENDING;
-    return false; // Add more conditions as needed
+    return false;
   };
 
   const handleApprove = () => {
@@ -198,41 +201,166 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
     </div>
   );
 
-  const renderReviewDetails = (review: ReviewItem) => (
-    <div className="space-y-4">
+  const renderRatingDetails = (rating: RatingItem) => (
+    <div className="space-y-6">
+      {/* Rating Section */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <div className="flex items-center mb-3">
-          <div className="flex text-yellow-400 text-lg">
-            {[...Array(5)].map((_, i) => (
-              <span key={i}>{i < review.rating ? "★" : "☆"}</span>
-            ))}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <div className="flex text-yellow-400 text-2xl mr-3">
+              {[...Array(5)].map((_, i) => (
+                <span key={i}>{i < rating.score ? "★" : "☆"}</span>
+              ))}
+            </div>
+            <span className="text-xl font-semibold">({rating.score}/5)</span>
           </div>
-          <span className="ml-2 text-lg font-semibold">
-            ({review.rating}/5)
-          </span>
+          <div className="text-sm text-gray-500">Rating ID: {rating.id}</div>
         </div>
-        <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h4 className="font-medium text-gray-900 mb-2">Review Details</h4>
-          <div className="space-y-2 text-sm">
-            <p>
-              <strong>Reviewer ID:</strong> {review.reviewerId}
-            </p>
-            <p>
-              <strong>Reviewee ID:</strong> {review.revieweeId}
-            </p>
-            <p>
-              <strong>Reviewee Type:</strong> {review.revieweeType}
-            </p>
-            <p>
-              <strong>Created:</strong>{" "}
-              {new Date(review.createdAt).toLocaleString()}
+        {rating.comment ? (
+          <div className="mt-3">
+            <h5 className="font-medium text-gray-900 mb-2">Comment:</h5>
+            <p className="text-gray-700 leading-relaxed bg-white p-3 rounded border">
+              {rating.comment}
             </p>
           </div>
+        ) : (
+          <div className="mt-3">
+            <p className="text-sm text-gray-500 italic">No comment provided</p>
+          </div>
+        )}
+      </div>
+
+      {/* Basic Rating Information */}
+      <div className="border rounded-lg p-4">
+        <h4 className="font-medium text-gray-900 mb-4">Rating Information</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div>
+              <span className="text-sm font-medium text-gray-900">
+                Booking ID:
+              </span>
+              <p className="text-sm text-gray-600">{rating.bookingId}</p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-900">
+                Reviewer ID:
+              </span>
+              <p className="text-sm text-gray-600">{rating.reviewerUserId}</p>
+            </div>
+            {rating.photographerId && (
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Photographer ID:
+                </span>
+                <p className="text-sm text-gray-600">{rating.photographerId}</p>
+              </div>
+            )}
+          </div>
+          <div className="space-y-3">
+            {rating.locationId && (
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Location ID:
+                </span>
+                <p className="text-sm text-gray-600">{rating.locationId}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-sm font-medium text-gray-900">
+                Created:
+              </span>
+              <p className="text-sm text-gray-600">
+                {new Date(rating.createdAt).toLocaleString()}
+              </p>
+            </div>
+            {rating.updatedAt && (
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Updated:
+                </span>
+                <p className="text-sm text-gray-600">
+                  {new Date(rating.updatedAt).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Show booking details if available */}
+      {rating.booking ? (
+        <div className="border rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-4 flex items-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            Booking Details
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Booking Code:
+                </span>
+                <p className="text-sm text-gray-600 font-mono">
+                  {rating.booking.bookingCode}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Date & Time:
+                </span>
+                <div className="text-sm text-gray-600">
+                  <p>
+                    {new Date(rating.booking.bookingDate).toLocaleDateString()}
+                  </p>
+                  <p>
+                    {rating.booking.startTime} - {rating.booking.endTime}
+                  </p>
+                  <p className="text-xs">
+                    Duration: {rating.booking.duration} hours
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Status:
+                </span>
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ml-2 ${getStatusColor(
+                    rating.booking.status
+                  )}`}
+                >
+                  {rating.booking.status}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Total Amount:
+                </span>
+                <p className="text-lg font-semibold text-green-600">
+                  {rating.booking.totalAmount.toLocaleString()}đ
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-yellow-800">
+                Booking Details Not Available
+              </p>
+              <p className="text-xs text-yellow-700">
+                Booking information could not be retrieved for booking ID:{" "}
+                {rating.bookingId}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -240,7 +368,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
     photographer: PhotographerModerationItem
   ) => (
     <div className="space-y-6">
-      {/* Profile Section */}
       <div className="flex items-start space-x-4">
         <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
           {photographer.profileImage ? (
@@ -270,7 +397,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Contact & Professional Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h4 className="font-medium text-gray-900 mb-3">
@@ -313,7 +439,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Equipment */}
       {photographer.equipment && (
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Equipment</h4>
@@ -323,7 +448,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         </div>
       )}
 
-      {/* Portfolio Images */}
       {photographer.portfolioImages &&
         photographer.portfolioImages.length > 0 && (
           <div>
@@ -349,7 +473,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const renderVenueDetails = (venue: VenueModerationItem) => (
     <div className="space-y-6">
-      {/* Basic Info */}
       <div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           {venue.venueName}
@@ -363,7 +486,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         )}
       </div>
 
-      {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Venue Information</h4>
@@ -410,7 +532,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Images */}
       {venue.images && venue.images.length > 0 && (
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Venue Images</h4>
@@ -435,7 +556,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const renderEventDetails = (event: EventModerationItem) => (
     <div className="space-y-6">
-      {/* Basic Info */}
       <div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           {event.eventName}
@@ -449,7 +569,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         )}
       </div>
 
-      {/* Event Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Event Information</h4>
@@ -491,7 +610,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Images */}
       {event.images && event.images.length > 0 && (
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Event Images</h4>
@@ -516,7 +634,7 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
 
   const renderContent = () => {
     if (isImage(content)) return renderImageDetails(content);
-    if (isReview(content)) return renderReviewDetails(content);
+    if (isRating(content)) return renderRatingDetails(content);
     if (isPhotographer(content)) return renderPhotographerDetails(content);
     if (isVenue(content)) return renderVenueDetails(content);
     if (isEvent(content)) return renderEventDetails(content);
@@ -541,7 +659,6 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
         className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center space-x-3">
             <h2 className="text-xl font-semibold">{getContentTitle()}</h2>
@@ -562,10 +679,8 @@ const ContentDetailModal: React.FC<ContentDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6">{renderContent()}</div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t bg-gray-50 flex justify-between">
           <button
             onClick={onClose}

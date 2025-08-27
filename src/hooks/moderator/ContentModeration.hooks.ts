@@ -1,11 +1,11 @@
-// src/hooks/moderator/ContentModeration.hooks.ts - UPDATED FOR STRUCTURED NAVIGATION
+// src/hooks/moderator/ContentModeration.hooks.ts - UPDATED FOR RATING MANAGEMENT
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
 import { contentModerationService } from "../../services/contentModerationService";
 import {
   ImageItem,
-  ReviewItem,
+  RatingItem, // Changed from ReviewItem
   ContentType,
   PhotographerModerationItem,
   VenueModerationItem,
@@ -14,6 +14,7 @@ import {
   ModerationFilters,
   PaginationParams,
   VerificationStatus,
+  UpdateRatingDto,
 } from "../../types/moderator/ContentModeration.types";
 
 // ===== MAIN CONTENT MODERATION HOOK (Enhanced) =====
@@ -21,7 +22,7 @@ export const useContentModeration = () => {
   // Existing state
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<ImageItem[]>([]);
-  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [ratings, setRatings] = useState<RatingItem[]>([]); // Changed from reviews
   const [activeTab, setActiveTab] = useState<ContentType>("images");
   const [apiStatus, setApiStatus] = useState<string>("");
 
@@ -39,7 +40,7 @@ export const useContentModeration = () => {
 
   // Test API connection (keep existing)
   const testAPI = async () => {
-    console.log("🧪 Testing API connection...");
+    console.log("Testing API connection...");
     const result = await contentModerationService.testAPIConnection();
     setApiStatus(result.message);
 
@@ -47,7 +48,7 @@ export const useContentModeration = () => {
       toast.success("API connected successfully");
     } else {
       toast.error(`API Error: ${result.message}`);
-      console.error("🚨 API Connection failed:", result.message);
+      console.error("API Connection failed:", result.message);
     }
 
     return result.success;
@@ -56,11 +57,11 @@ export const useContentModeration = () => {
   // Load stats for dashboard
   const loadStats = async () => {
     try {
-      console.log("📊 Loading moderation stats...");
+      console.log("Loading moderation stats...");
       const statsData = await contentModerationService.getModerationStats();
       setStats(statsData);
     } catch (error) {
-      console.error("💥 Error loading stats:", error);
+      console.error("Error loading stats:", error);
       toast.error("Failed to load statistics");
     }
   };
@@ -75,16 +76,16 @@ export const useContentModeration = () => {
       // Test API first
       const apiWorking = await testAPI();
       if (!apiWorking) {
-        console.log("⚠️ API not working, skipping image load");
+        console.log("API not working, skipping image load");
         setImages([]);
         return;
       }
 
       const allImages = await contentModerationService.getAllImages();
-      console.log("📸 Loaded images:", allImages.length);
+      console.log("Loaded images:", allImages.length);
       setImages(allImages);
     } catch (error) {
-      console.error("💥 Error loading images:", error);
+      console.error("Error loading images:", error);
       toast.error(
         `Failed to load images: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -99,19 +100,19 @@ export const useContentModeration = () => {
   const loadPhotographerImages = async (photographerId: number) => {
     try {
       setItemImagesLoading(true);
-      console.log(`📸 Loading images for photographer ${photographerId}`);
+      console.log(`Loading images for photographer ${photographerId}`);
 
       const images = await contentModerationService.getImagesForPhotographer(
         photographerId
       );
       setItemImages(images);
       console.log(
-        `✅ Loaded ${images.length} images for photographer ${photographerId}`
+        `Loaded ${images.length} images for photographer ${photographerId}`
       );
 
       return images;
     } catch (error) {
-      console.error("💥 Error loading photographer images:", error);
+      console.error("Error loading photographer images:", error);
       toast.error("Failed to load photographer images");
       setItemImages([]);
       return [];
@@ -124,19 +125,17 @@ export const useContentModeration = () => {
   const loadLocationImages = async (locationId: number) => {
     try {
       setItemImagesLoading(true);
-      console.log(`🏢 Loading images for location ${locationId}`);
+      console.log(`Loading images for location ${locationId}`);
 
       const images = await contentModerationService.getImagesForLocation(
         locationId
       );
       setItemImages(images);
-      console.log(
-        `✅ Loaded ${images.length} images for location ${locationId}`
-      );
+      console.log(`Loaded ${images.length} images for location ${locationId}`);
 
       return images;
     } catch (error) {
-      console.error("💥 Error loading location images:", error);
+      console.error("Error loading location images:", error);
       toast.error("Failed to load location images");
       setItemImages([]);
       return [];
@@ -149,15 +148,15 @@ export const useContentModeration = () => {
   const loadEventImages = async (eventId: number) => {
     try {
       setItemImagesLoading(true);
-      console.log(`🎉 Loading images for event ${eventId}`);
+      console.log(`Loading images for event ${eventId}`);
 
       const images = await contentModerationService.getImagesForEvent(eventId);
       setItemImages(images);
-      console.log(`✅ Loaded ${images.length} images for event ${eventId}`);
+      console.log(`Loaded ${images.length} images for event ${eventId}`);
 
       return images;
     } catch (error) {
-      console.error("💥 Error loading event images:", error);
+      console.error("Error loading event images:", error);
       toast.error("Failed to load event images");
       setItemImages([]);
       return [];
@@ -168,18 +167,18 @@ export const useContentModeration = () => {
 
   // ===== ENTITY LOADING METHODS =====
 
-  // Load reviews (existing method)
-  const loadReviews = async () => {
+  // Load ratings (changed from loadReviews)
+  const loadRatings = async () => {
     try {
       setLoading(true);
 
-      const allReviews = await contentModerationService.getAllReviews();
-      console.log("💬 Loaded reviews:", allReviews.length);
-      setReviews(allReviews);
+      const allRatings = await contentModerationService.getAllRatings();
+      console.log("Loaded ratings:", allRatings.length);
+      setRatings(allRatings);
     } catch (error) {
-      console.error("💥 Error loading reviews:", error);
+      console.error("Error loading ratings:", error);
       toast.error(
-        `Failed to load reviews: ${
+        `Failed to load ratings: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -192,14 +191,14 @@ export const useContentModeration = () => {
   const loadPhotographers = async () => {
     try {
       setLoading(true);
-      console.log("👥 Loading photographers for moderation...");
+      console.log("Loading photographers for moderation...");
 
       const response =
         await contentModerationService.getPhotographersForModeration();
       setPhotographers(response.items);
-      console.log("✅ Photographers loaded:", response.items.length);
+      console.log("Photographers loaded:", response.items.length);
     } catch (error) {
-      console.error("💥 Error loading photographers:", error);
+      console.error("Error loading photographers:", error);
       toast.error("Failed to load photographers");
     } finally {
       setLoading(false);
@@ -210,13 +209,13 @@ export const useContentModeration = () => {
   const loadVenues = async () => {
     try {
       setLoading(true);
-      console.log("🏢 Loading venues for moderation...");
+      console.log("Loading venues for moderation...");
 
       const response = await contentModerationService.getVenuesForModeration();
       setVenues(response.items);
-      console.log("✅ Venues loaded:", response.items.length);
+      console.log("Venues loaded:", response.items.length);
     } catch (error) {
-      console.error("💥 Error loading venues:", error);
+      console.error("Error loading venues:", error);
       toast.error("Failed to load venues");
     } finally {
       setLoading(false);
@@ -227,13 +226,13 @@ export const useContentModeration = () => {
   const loadEvents = async () => {
     try {
       setLoading(true);
-      console.log("🎉 Loading events for moderation...");
+      console.log("Loading events for moderation...");
 
       const response = await contentModerationService.getEventsForModeration();
       setEvents(response.items);
-      console.log("✅ Events loaded:", response.items.length);
+      console.log("Events loaded:", response.items.length);
     } catch (error) {
-      console.error("💥 Error loading events:", error);
+      console.error("Error loading events:", error);
       toast.error("Failed to load events");
     } finally {
       setLoading(false);
@@ -262,19 +261,53 @@ export const useContentModeration = () => {
     }
   };
 
-  const deleteReview = async (reviewId: number) => {
+  // NEW: Rating management methods (replace review methods)
+  const deleteRating = async (ratingId: number) => {
     try {
-      const success = await contentModerationService.deleteReview(reviewId);
+      const success = await contentModerationService.deleteRating(ratingId);
       if (success) {
-        setReviews((prev) => prev.filter((review) => review.id !== reviewId));
-        toast.success("Review deleted successfully");
+        setRatings((prev) => prev.filter((rating) => rating.id !== ratingId));
+        toast.success("Rating deleted successfully");
         return true;
       }
-      toast.error("Failed to delete review");
+      toast.error("Failed to delete rating");
       return false;
     } catch (error) {
-      console.error("Error deleting review:", error);
-      toast.error("Failed to delete review");
+      console.error("Error deleting rating:", error);
+      toast.error("Failed to delete rating");
+      return false;
+    }
+  };
+
+  const updateRating = async (
+    ratingId: number,
+    updateData: UpdateRatingDto
+  ) => {
+    try {
+      const success = await contentModerationService.updateRating(
+        ratingId,
+        updateData
+      );
+      if (success) {
+        // Reload the rating to get updated data
+        const updatedRating = await contentModerationService.getRatingById(
+          ratingId
+        );
+        if (updatedRating) {
+          setRatings((prev) =>
+            prev.map((rating) =>
+              rating.id === ratingId ? updatedRating : rating
+            )
+          );
+        }
+        toast.success("Rating updated successfully");
+        return true;
+      }
+      toast.error("Failed to update rating");
+      return false;
+    } catch (error) {
+      console.error("Error updating rating:", error);
+      toast.error("Failed to update rating");
       return false;
     }
   };
@@ -312,7 +345,7 @@ export const useContentModeration = () => {
     notes?: string
   ) => {
     try {
-      console.log(`✅ Verifying photographer ${photographerId} as ${status}`);
+      console.log(`Verifying photographer ${photographerId} as ${status}`);
       const response = await contentModerationService.verifyPhotographer(
         photographerId,
         status,
@@ -364,15 +397,15 @@ export const useContentModeration = () => {
   useEffect(() => {
     if (activeTab === "images") {
       // For images tab, we already have all data loaded
-      console.log(`📸 Images tab active, data already loaded`);
+      console.log(`Images tab active, data already loaded`);
       return;
     }
 
-    console.log(`🔄 Refreshing data for tab: ${activeTab}`);
+    console.log(`Refreshing data for tab: ${activeTab}`);
 
     switch (activeTab) {
-      case "reviews":
-        loadReviews();
+      case "ratings": // Changed from "reviews"
+        loadRatings();
         break;
       case "photographers":
         loadPhotographers();
@@ -389,7 +422,7 @@ export const useContentModeration = () => {
   // Load stats and initial data on component mount
   useEffect(() => {
     const loadInitialData = async () => {
-      console.log("🚀 Loading initial data for all tabs...");
+      console.log("Loading initial data for all tabs...");
 
       // Load stats first
       await loadStats();
@@ -397,13 +430,13 @@ export const useContentModeration = () => {
       // Load all data to populate tab counts
       await Promise.all([
         loadImages(),
-        loadReviews(),
+        loadRatings(), // Changed from loadReviews
         loadPhotographers(),
         loadVenues(),
         loadEvents(),
       ]);
 
-      console.log("✅ Initial data loading completed");
+      console.log("Initial data loading completed");
     };
 
     loadInitialData();
@@ -411,13 +444,13 @@ export const useContentModeration = () => {
 
   // Universal refresh function
   const refreshData = useCallback(() => {
-    console.log(`🔄 Refreshing data for tab: ${activeTab}`);
+    console.log(`Refreshing data for tab: ${activeTab}`);
 
     switch (activeTab) {
       case "images":
         return loadImages();
-      case "reviews":
-        return loadReviews();
+      case "ratings": // Changed from "reviews"
+        return loadRatings();
       case "photographers":
         return loadPhotographers();
       case "venues":
@@ -430,15 +463,16 @@ export const useContentModeration = () => {
   }, [activeTab]);
 
   return {
-    // Existing state (backward compatibility)
+    // Updated state (changed reviews to ratings)
     loading,
     images,
-    reviews,
+    ratings, // Changed from reviews
     activeTab,
     apiStatus,
     setActiveTab,
     deleteImage,
-    deleteReview,
+    deleteRating, // Changed from deleteReview
+    updateRating, // New method
     setImagePrimary,
     testAPI,
     refreshData,
@@ -685,61 +719,100 @@ export const useImageModeration = () => {
   };
 };
 
-// Enhanced Review-specific hook
-export const useReviewModeration = () => {
-  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+// ===== NEW: Rating-specific hook (Replace useReviewModeration) =====
+export const useRatingModeration = () => {
+  const [ratings, setRatings] = useState<RatingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const loadReviews = useCallback(async () => {
+  const loadRatings = useCallback(async () => {
     try {
       setLoading(true);
-      const allReviews = await contentModerationService.getAllReviews();
-      setReviews(allReviews);
+      const allRatings = await contentModerationService.getAllRatings();
+      setRatings(allRatings);
     } catch (error) {
-      console.error("Error loading reviews:", error);
-      toast.error("Failed to load reviews");
+      console.error("Error loading ratings:", error);
+      toast.error("Failed to load ratings");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const deleteReview = useCallback(async (reviewId: number) => {
+  const deleteRating = useCallback(async (ratingId: number) => {
     try {
-      setActionLoading(reviewId);
-      const success = await contentModerationService.deleteReview(reviewId);
+      setActionLoading(ratingId);
+      const success = await contentModerationService.deleteRating(ratingId);
 
       if (success) {
-        setReviews((prev) => prev.filter((review) => review.id !== reviewId));
-        toast.success("Review deleted successfully");
+        setRatings((prev) => prev.filter((rating) => rating.id !== ratingId));
+        toast.success("Rating deleted successfully");
         return true;
       } else {
-        toast.error("Failed to delete review");
+        toast.error("Failed to delete rating");
         return false;
       }
     } catch (error) {
-      console.error("Error deleting review:", error);
-      toast.error("Failed to delete review");
+      console.error("Error deleting rating:", error);
+      toast.error("Failed to delete rating");
       return false;
     } finally {
       setActionLoading(null);
     }
   }, []);
 
+  const updateRating = useCallback(
+    async (ratingId: number, updateData: UpdateRatingDto) => {
+      try {
+        setActionLoading(ratingId);
+        const success = await contentModerationService.updateRating(
+          ratingId,
+          updateData
+        );
+
+        if (success) {
+          // Reload the rating to get updated data
+          const updatedRating = await contentModerationService.getRatingById(
+            ratingId
+          );
+          if (updatedRating) {
+            setRatings((prev) =>
+              prev.map((rating) =>
+                rating.id === ratingId ? updatedRating : rating
+              )
+            );
+          }
+          toast.success("Rating updated successfully");
+          return true;
+        } else {
+          toast.error("Failed to update rating");
+          return false;
+        }
+      } catch (error) {
+        console.error("Error updating rating:", error);
+        toast.error("Failed to update rating");
+        return false;
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
-    loadReviews();
-  }, [loadReviews]);
+    loadRatings();
+  }, [loadRatings]);
 
   return {
-    reviews,
+    ratings,
     loading,
     actionLoading,
-    deleteReview,
-    refresh: loadReviews,
+    deleteRating,
+    updateRating,
+    refresh: loadRatings,
   };
 };
 
-// ===== NEW: Venue-specific hook =====
+// ===== VENUE-SPECIFIC HOOK =====
 export const useVenueModeration = () => {
   const [venues, setVenues] = useState<VenueModerationItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -779,7 +852,7 @@ export const useVenueModeration = () => {
   };
 };
 
-// ===== NEW: Event-specific hook =====
+// ===== EVENT-SPECIFIC HOOK =====
 export const useEventModeration = () => {
   const [events, setEvents] = useState<EventModerationItem[]>([]);
   const [loading, setLoading] = useState(false);

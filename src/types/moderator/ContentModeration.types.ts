@@ -1,4 +1,4 @@
-// src/types/moderator/ContentModeration.types.ts - UPDATED VERSION
+// src/types/moderator/ContentModeration.types.ts - UPDATED WITH RATING MANAGEMENT
 
 // ===== KEEP EXISTING TYPES (for backward compatibility) =====
 export interface ImageItem {
@@ -12,14 +12,69 @@ export interface ImageItem {
   createdAt: string;
 }
 
-export interface ReviewItem {
+// ===== NEW RATING TYPES (Replace ReviewItem) =====
+export interface BookingInfo {
   id: number;
-  rating: number;
-  comment: string;
-  reviewerId: number;
-  revieweeId: number;
-  revieweeType: string;
+  bookingCode: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  status: BookingStatus;
+  totalAmount: number;
+  customer: {
+    id: number;
+    fullName: string;
+    profileImage?: string;
+  };
+  photographer: {
+    id: number;
+    fullName: string;
+    profileImage?: string;
+  };
+  venue?: {
+    id: number;
+    name: string;
+    address: string;
+  };
+}
+
+export interface RatingItem {
+  id: number;
+  bookingId: number;
+  reviewerUserId: number;
+  photographerId?: number;
+  locationId?: number;
+  score: number; // 1-5 rating
+  comment?: string;
   createdAt: string;
+  updatedAt?: string;
+  // Enhanced with booking info for moderation
+  booking?: BookingInfo;
+  reviewer?: {
+    id: number;
+    fullName: string;
+    profileImage?: string;
+  };
+  photographer?: {
+    id: number;
+    fullName: string;
+    profileImage?: string;
+  };
+  location?: {
+    id: number;
+    name: string;
+    address: string;
+  };
+}
+
+export enum BookingStatus {
+  PENDING = "pending",
+  CONFIRMED = "confirmed",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+  CANCELLED = "cancelled",
+  REFUNDED = "refunded",
 }
 
 // ===== ADD NEW COMPREHENSIVE TYPES =====
@@ -38,13 +93,14 @@ export enum VerificationStatus {
   SUSPENDED = "suspended",
 }
 
-// Update ContentType to include all moderation areas
+// Update ContentType to include ratings instead of reviews
 export type ContentType =
   | "images"
-  | "reviews"
+  | "ratings" // Changed from "reviews"
   | "photographers"
   | "venues"
   | "events";
+
 export type ContentStatus =
   | "all"
   | "flagged"
@@ -53,7 +109,7 @@ export type ContentStatus =
   | "approved"
   | "rejected";
 
-// ===== NEW PHOTOGRAPHER MODERATION =====
+// ===== PHOTOGRAPHER MODERATION =====
 export interface PhotographerModerationItem {
   id: number;
   userId: number;
@@ -74,7 +130,7 @@ export interface PhotographerModerationItem {
   updatedAt: string;
 }
 
-// ===== NEW VENUE MODERATION =====
+// ===== VENUE MODERATION =====
 export interface VenueModerationItem {
   id: number;
   ownerId: number;
@@ -93,7 +149,7 @@ export interface VenueModerationItem {
   updatedAt: string;
 }
 
-// ===== NEW EVENT MODERATION =====
+// ===== EVENT MODERATION =====
 export interface EventModerationItem {
   id: number;
   locationId: number;
@@ -113,7 +169,7 @@ export interface EventModerationItem {
   updatedAt: string;
 }
 
-// ===== MODERATION STATS =====
+// ===== MODERATION STATS (Updated) =====
 export interface ModerationStats {
   totalPending: number;
   totalApproved: number;
@@ -121,8 +177,9 @@ export interface ModerationStats {
   pendingPhotographers: number;
   pendingVenues: number;
   pendingEvents: number;
-  pendingReviews: number;
+  pendingRatings: number; // Changed from pendingReviews
   flaggedImages: number;
+  totalRatings: number; // New stat
 }
 
 // ===== API RESPONSE TYPES =====
@@ -140,6 +197,21 @@ export interface ModerationListResponse<T> {
   totalPages: number;
 }
 
+// ===== RATING DTOs (Based on API) =====
+export interface CreateRatingDto {
+  bookingId: number;
+  reviewerUserId: number;
+  photographerId?: number;
+  locationId?: number;
+  score: number; // 1-5
+  comment?: string;
+}
+
+export interface UpdateRatingDto {
+  score?: number;
+  comment?: string;
+}
+
 // ===== FILTERS & PAGINATION =====
 export interface ModerationFilters {
   status?: ModerationStatus[];
@@ -147,6 +219,8 @@ export interface ModerationFilters {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  ratingScore?: number[]; // New filter for rating scores
+  bookingStatus?: BookingStatus[]; // New filter for booking status
 }
 
 export interface PaginationParams {
