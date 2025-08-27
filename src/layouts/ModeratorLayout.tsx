@@ -1,18 +1,21 @@
-// layouts/ModeratorLayout.tsx - FIXED VERSION WITH HEADER
+// layouts/ModeratorLayout.tsx - UPDATED: REMOVED DASHBOARD NAVIGATION
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { Shield, AlertTriangle, Users, BarChart3 } from "lucide-react";
+import { Shield, AlertTriangle } from "lucide-react";
 
 const ModeratorLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
-  // MODERATOR NAVIGATION - CONTENT & REPORTS ONLY
+  // MODERATOR NAVIGATION - CONTENT & REPORTS ONLY (NO DASHBOARD)
   const moderatorNavigation = [
-    { name: "Dashboard", href: "/moderator", icon: BarChart3 },
-    { name: "Content Moderation", href: "/moderator/content", icon: Shield },
+    {
+      name: "Content Moderation",
+      href: "/moderator/content",
+      icon: Shield,
+    },
     {
       name: "Report Handling",
       href: "/moderator/reports",

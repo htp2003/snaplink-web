@@ -1,4 +1,4 @@
-// router/RoleBasedRedirect.tsx
+// router/RoleBasedRedirect.tsx - UPDATED: MODERATOR GOES DIRECT TO CONTENT
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -18,8 +18,10 @@ const RoleBasedRedirect: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect based on user role
-  const redirectPath = user.role === "admin" ? "/admin" : "/moderator";
+  // Admin: goes to dashboard (/admin)
+  // Moderator: goes directly to content moderation (/moderator/content)
+  const redirectPath = user.role === "admin" ? "/admin" : "/moderator/content";
+
   return <Navigate to={redirectPath} replace />;
 };
 

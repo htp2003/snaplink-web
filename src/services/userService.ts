@@ -1,4 +1,4 @@
-// services/userService.ts
+// services/userService.ts - FIXED VERSION
 import { apiClient, replaceUrlParams } from "./apiClient";
 import { API_ENDPOINTS } from "../config/api";
 
@@ -61,12 +61,56 @@ class UserService {
     return apiClient.get<User>(endpoint);
   }
 
-  // Get users by role
+  // Get users by role - with better error handling
   async getUsersByRole(roleName: string) {
-    const endpoint = replaceUrlParams(API_ENDPOINTS.USERS_BY_ROLE, {
-      roleName,
-    });
-    return apiClient.get<User[]>(endpoint);
+    try {
+      // Handle different role name formats that might exist in your backend
+      const roleMapping: Record<string, string[]> = {
+        admin: ["admin", "Admin"],
+        moderator: ["moderator", "Moderator"],
+        photographer: ["photographer", "Photographer"],
+        "venue owner": ["owner", "locationowner", "venue_owner", "VenueOwner"],
+        user: ["user", "User"],
+      };
+
+      const possibleRoleNames = roleMapping[roleName.toLowerCase()] || [
+        roleName,
+      ];
+
+      // Try different role name variations
+      for (const possibleRole of possibleRoleNames) {
+        try {
+          const endpoint = replaceUrlParams(API_ENDPOINTS.USERS_BY_ROLE, {
+            roleName: possibleRole,
+          });
+
+          const response = await apiClient.get<User[]>(endpoint);
+
+          if (response.success && response.data) {
+            return response;
+          }
+        } catch (error) {
+          // Continue to next role name variation
+          console.warn(
+            `Role name '${possibleRole}' failed, trying next variation`
+          );
+        }
+      }
+
+      // If all variations failed, return empty result
+      return {
+        success: false,
+        message: `No users found for role: ${roleName}`,
+        data: [] as User[],
+      };
+    } catch (error) {
+      console.error("Error in getUsersByRole:", error);
+      return {
+        success: false,
+        message: "Failed to fetch users by role",
+        data: [] as User[],
+      };
+    }
   }
 
   // Create admin user
@@ -105,6 +149,46 @@ class UserService {
     return apiClient.get<User>(
       `/api/User/GetUserByEmail?email=${encodeURIComponent(email)}`
     );
+  }
+
+  // Helper method to get all users from different roles (for dashboard)
+  async getAllUsersByRoles() {
+    try {
+      const roleTypes = ["admin", "moderator", "photographer", "owner", "user"];
+
+      const rolePromises = roleTypes.map(async (role) => {
+        try {
+          const response = await this.getUsersByRole(role);
+          return response.success ? response.data : [];
+        } catch (error) {
+          console.warn(`Error fetching role ${role}:`, error);
+          return [];
+        }
+      });
+
+      const roleResults = await Promise.all(rolePromises);
+
+      // Merge all users, avoiding duplicates
+      const userMap = new Map<number, User>();
+      roleResults.flat().forEach((user: User) => {
+        if (!userMap.has(user.userId)) {
+          userMap.set(user.userId, user);
+        }
+      });
+
+      return {
+        success: true,
+        data: Array.from(userMap.values()),
+        message: "Users loaded successfully",
+      };
+    } catch (error) {
+      console.error("Error loading all users by roles:", error);
+      return {
+        success: false,
+        data: [] as User[],
+        message: "Failed to load users",
+      };
+    }
   }
 }
 

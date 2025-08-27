@@ -1,110 +1,142 @@
+// components/dashboard/QuickActions.tsx
 import React from "react";
-import { Plus, Eye, Flag, Settings, LucideIcon } from "lucide-react";
-
-interface QuickAction {
-  id: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  color: string;
-  onClick: () => void;
-  badge?: number;
-}
+import { AlertTriangle, Clock, FileX, Eye } from "lucide-react";
 
 interface QuickActionsProps {
-  userRole: "admin" | "moderator";
+  userRole: string;
+  pendingWithdrawals: number;
+  pendingVerifications: number;
+  reportedContent: number;
+  withdrawalsList?: any[];
+  verificationsList?: any[];
 }
 
-const QuickActions: React.FC<QuickActionsProps> = ({ userRole }) => {
-  const adminActions: QuickAction[] = [
+const QuickActions: React.FC<QuickActionsProps> = ({
+  userRole,
+  pendingWithdrawals,
+  pendingVerifications,
+  reportedContent,
+  withdrawalsList = [],
+  verificationsList = [],
+}) => {
+  const actions = [
     {
-      id: "add-user",
-      title: "Thêm người dùng",
-      description: "Tạo tài khoản mới",
-      icon: Plus,
-      color: "bg-blue-500 hover:bg-blue-600",
-      onClick: () => console.log("Add user"),
+      title: "Yêu cầu rút tiền",
+      count: pendingWithdrawals,
+      icon: Clock,
+      color: "orange",
+      href: "/admin/withdrawals?status=pending",
+      urgent: pendingWithdrawals > 5,
     },
     {
-      id: "review-content",
-      title: "Kiểm duyệt nội dung",
-      description: "Xem nội dung chờ duyệt",
-      icon: Eye,
-      color: "bg-purple-500 hover:bg-purple-600",
-      onClick: () => console.log("Review content"),
-      badge: 5,
+      title: "Chờ xác thực",
+      count: pendingVerifications,
+      icon: AlertTriangle,
+      color: "red",
+      href: "/admin/verifications?status=pending",
+      urgent: pendingVerifications > 3,
     },
     {
-      id: "handle-reports",
-      title: "Xử lý báo cáo",
-      description: "Xem báo cáo vi phạm",
-      icon: Flag,
-      color: "bg-red-500 hover:bg-red-600",
-      onClick: () => console.log("Handle reports"),
-      badge: 8,
-    },
-    {
-      id: "system-settings",
-      title: "Cài đặt hệ thống",
-      description: "Cấu hình platform",
-      icon: Settings,
-      color: "bg-gray-500 hover:bg-gray-600",
-      onClick: () => console.log("System settings"),
+      title: "Nội dung báo cáo",
+      count: reportedContent,
+      icon: FileX,
+      color: "purple",
+      href: "/admin/reports?status=pending",
+      urgent: reportedContent > 0,
     },
   ];
-
-  const moderatorActions: QuickAction[] = [
-    {
-      id: "review-content",
-      title: "Kiểm duyệt nội dung",
-      description: "Xem nội dung chờ duyệt",
-      icon: Eye,
-      color: "bg-purple-500 hover:bg-purple-600",
-      onClick: () => console.log("Review content"),
-      badge: 3,
-    },
-    {
-      id: "handle-reports",
-      title: "Xử lý báo cáo",
-      description: "Xem báo cáo vi phạm",
-      icon: Flag,
-      color: "bg-red-500 hover:bg-red-600",
-      onClick: () => console.log("Handle reports"),
-      badge: 8,
-    },
-  ];
-
-  const actions = userRole === "admin" ? adminActions : moderatorActions;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Thao tác nhanh
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {actions.map((action) => (
-          <button
-            key={action.id}
-            onClick={action.onClick}
-            className={`${action.color} text-white p-4 rounded-lg transition-colors text-left relative group`}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Cần xử lý</h3>
+
+      <div className="space-y-4">
+        {actions.map((action, index) => (
+          <div
+            key={index}
+            className={`p-4 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
+              action.urgent
+                ? "border-red-200 bg-red-50"
+                : "border-gray-200 bg-gray-50"
+            }`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h4 className="font-medium mb-1">{action.title}</h4>
-                <p className="text-sm opacity-90">{action.description}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <action.icon
+                  className={`w-5 h-5 ${
+                    action.urgent ? "text-red-600" : "text-gray-600"
+                  }`}
+                />
+                <div>
+                  <p className="font-medium text-gray-900">{action.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {action.count} mục cần xử lý
+                  </p>
+                </div>
               </div>
-              <div className="ml-3">
-                <action.icon className="w-5 h-5" />
-                {action.badge && (
-                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
-                    {action.badge}
-                  </span>
-                )}
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  action.urgent
+                    ? "bg-red-100 text-red-800"
+                    : action.count > 0
+                    ? "bg-orange-100 text-orange-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {action.count}
               </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
+
+      {/* Recent Withdrawals Preview */}
+      {withdrawalsList.length > 0 && (
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">
+            Rút tiền gần đây
+          </h4>
+          <div className="space-y-2">
+            {withdrawalsList.slice(0, 3).map((withdrawal, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-gray-600 truncate">
+                  {withdrawal.userName}
+                </span>
+                <span className="font-medium text-red-600">
+                  -{withdrawal.amount.toLocaleString("vi-VN")}đ
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Verifications Preview */}
+      {verificationsList.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">
+            Xác thực gần đây
+          </h4>
+          <div className="space-y-2">
+            {verificationsList.slice(0, 3).map((verification, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-gray-600 truncate">
+                  {verification.userName}
+                </span>
+                <span className="text-xs text-orange-600 capitalize">
+                  {verification.type}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
