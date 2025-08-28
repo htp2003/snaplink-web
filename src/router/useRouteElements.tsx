@@ -1,4 +1,4 @@
-// router/useRouteElements.tsx - UPDATED: REMOVED MODERATOR DASHBOARD
+// router/useRouteElements.tsx - UPDATED: REPLACED REPORT HANDLING WITH COMPLAINT MANAGEMENT
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -20,9 +20,9 @@ import BookingManagement from "../pages/admin/BookingManagement";
 import TransactionManagement from "../pages/admin/TransactionManagement";
 import Settings from "../pages/admin/Settings";
 
-// Moderator pages (CONTENT & REPORTS ONLY - NO DASHBOARD)
+// Moderator pages (CONTENT & COMPLAINTS ONLY - NO DASHBOARD)
 import ModeratorContentModeration from "../pages/moderator/ContentModeration";
-import ReportHandling from "../pages/moderator/ReportHandling";
+import ComplaintManagement from "../pages/moderator/ComplaintManagement";
 
 const useRouteElements = () => {
   const { user } = useAuth();
@@ -52,7 +52,7 @@ const useRouteElements = () => {
           <Route path="settings" element={<Settings />} />
         </Route>
 
-        {/* Moderator routes - CONTENT & REPORTS ONLY (NO DASHBOARD) */}
+        {/* Moderator routes - CONTENT & COMPLAINTS ONLY (NO DASHBOARD) */}
         <Route
           path="/moderator"
           element={
@@ -64,7 +64,7 @@ const useRouteElements = () => {
           {/* Redirect /moderator to /moderator/content directly */}
           <Route index element={<Navigate to="/moderator/content" replace />} />
           <Route path="content" element={<ModeratorContentModeration />} />
-          <Route path="reports" element={<ReportHandling />} />
+          <Route path="complaints" element={<ComplaintManagement />} />
         </Route>
 
         {/* Root route */}

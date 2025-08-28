@@ -309,28 +309,6 @@ class BookingService {
     }
   }
 
-  async cancelBooking(bookingId: number): Promise<boolean> {
-    try {
-      const response = await apiClient.put(`/api/Booking/${bookingId}/cancel`);
-      return response.success;
-    } catch (error) {
-      console.error("Error cancelling booking:", error);
-      return false;
-    }
-  }
-
-  async completeBooking(bookingId: number): Promise<boolean> {
-    try {
-      const response = await apiClient.put(
-        `/api/Booking/${bookingId}/Complete`
-      );
-      return response.success;
-    } catch (error) {
-      console.error("Error completing booking:", error);
-      return false;
-    }
-  }
-
   // Calculate booking statistics
   calculateStats(bookings: BookingData[]): BookingStats {
     const stats: BookingStats = {
@@ -394,6 +372,25 @@ class BookingService {
     }
 
     return stats;
+  }
+
+  // Trong bookingService hiện tại, thêm:
+  async cancelBooking(bookingId: number) {
+    const response = await apiClient.put(`/api/Booking/${bookingId}/cancel`);
+    if (response.success) {
+      return response.data;
+    } else {
+      throw new Error(response.message || "Failed to cancel booking");
+    }
+  }
+
+  async completeBooking(bookingId: number) {
+    const response = await apiClient.put(`/api/Booking/${bookingId}/Complete`);
+    if (response.success) {
+      return response.data;
+    } else {
+      throw new Error(response.message || "Failed to complete booking");
+    }
   }
 }
 

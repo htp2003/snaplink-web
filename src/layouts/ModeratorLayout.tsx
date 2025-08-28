@@ -1,15 +1,15 @@
-// layouts/ModeratorLayout.tsx - UPDATED: REMOVED DASHBOARD NAVIGATION
+// layouts/ModeratorLayout.tsx - UPDATED: REPLACED REPORT HANDLING WITH COMPLAINT MANAGEMENT
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { Shield, AlertTriangle } from "lucide-react";
+import { Shield, MessageSquare } from "lucide-react";
 
 const ModeratorLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
-  // MODERATOR NAVIGATION - CONTENT & REPORTS ONLY (NO DASHBOARD)
+  // MODERATOR NAVIGATION - CONTENT & COMPLAINTS (NO DASHBOARD)
   const moderatorNavigation = [
     {
       name: "Content Moderation",
@@ -17,9 +17,9 @@ const ModeratorLayout: React.FC = () => {
       icon: Shield,
     },
     {
-      name: "Report Handling",
-      href: "/moderator/reports",
-      icon: AlertTriangle,
+      name: "Complaint Management",
+      href: "/moderator/complaints",
+      icon: MessageSquare,
     },
   ];
 
