@@ -95,6 +95,7 @@ const TransactionManagement: React.FC = () => {
 
   const [rejectionReason, setRejectionReason] = useState("");
   const [transactionReference, setTransactionReference] = useState("");
+  const [billImageLink, setBillImageLink] = useState("");
   // PART 2: Helper Functions
 
   // Format currency
@@ -228,7 +229,11 @@ const TransactionManagement: React.FC = () => {
 
     switch (action) {
       case "approve":
-        success = await approveWithdrawalRequest(withdrawal.id);
+        if (!billImageLink.trim()) {
+          toast.error("Vui lòng nhập link hình ảnh hóa đơn");
+          return;
+        }
+        success = await approveWithdrawalRequest(withdrawal.id, billImageLink);
         break;
       case "reject":
         if (!rejectionReason.trim()) {
@@ -238,10 +243,7 @@ const TransactionManagement: React.FC = () => {
         success = await rejectWithdrawalRequest(withdrawal.id, rejectionReason);
         break;
       case "complete":
-        success = await completeWithdrawalRequest(
-          withdrawal.id,
-          transactionReference
-        );
+        success = await completeWithdrawalRequest(withdrawal.id);
         break;
     }
 
@@ -1556,7 +1558,7 @@ const TransactionManagement: React.FC = () => {
                       action: null,
                     });
                     setRejectionReason("");
-                    setTransactionReference("");
+                    setBillImageLink(""); // Clear bill image link
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -1593,6 +1595,27 @@ const TransactionManagement: React.FC = () => {
                   </div>
                 </div>
 
+                {/* NEW: Bill Image Link field for approval */}
+                {withdrawalActionModal.action === "approve" && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Link hình ảnh hóa đơn{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={billImageLink}
+                      onChange={(e) => setBillImageLink(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://example.com/images/bill-proof.jpg"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Nhập link hình ảnh chứng từ chuyển tiền làm bằng chứng phê
+                      duyệt
+                    </p>
+                  </div>
+                )}
+
                 {withdrawalActionModal.action === "reject" && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1608,20 +1631,7 @@ const TransactionManagement: React.FC = () => {
                   </div>
                 )}
 
-                {withdrawalActionModal.action === "complete" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mã giao dịch chuyển tiền (tùy chọn)
-                    </label>
-                    <input
-                      type="text"
-                      value={transactionReference}
-                      onChange={(e) => setTransactionReference(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nhập mã giao dịch từ ngân hàng..."
-                    />
-                  </div>
-                )}
+                {/* REMOVED: Transaction reference field for complete action (no longer needed according to new API) */}
 
                 <div className="flex justify-end space-x-3">
                   <button
@@ -1632,7 +1642,7 @@ const TransactionManagement: React.FC = () => {
                         action: null,
                       });
                       setRejectionReason("");
-                      setTransactionReference("");
+                      setBillImageLink(""); // Clear bill image link
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   >

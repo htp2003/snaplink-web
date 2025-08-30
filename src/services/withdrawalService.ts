@@ -5,8 +5,9 @@ import {
   WithdrawalResponse,
   WithdrawalApiResponse,
   SingleWithdrawalApiResponse,
-  ProcessWithdrawalRequest,
-  WithdrawalLimits,
+  UpdateWithdrawalStatusRequest,
+  CreateWithdrawalRequest,
+  UpdateWithdrawalRequest,
 } from "../types/admin/Withdrawal.types";
 
 class WithdrawalService {
@@ -130,20 +131,75 @@ class WithdrawalService {
     }
   }
 
-  // Process withdrawal request (approve/reject)
-  async processWithdrawalRequest(
-    withdrawalId: number,
-    data: ProcessWithdrawalRequest
+  // Get user's withdrawal requests (new endpoint)
+  async getUserWithdrawalRequests(
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<WithdrawalResponse> {
+    try {
+      const response = await apiClient.get(
+        `/api/WithdrawalRequest/user?page=${page}&pageSize=${pageSize}`
+      );
+
+      if (!response.success) {
+        throw new Error(
+          response.message || "Failed to fetch user withdrawal requests"
+        );
+      }
+
+      const apiResponse = response.data as WithdrawalApiResponse;
+
+      if (apiResponse.error !== 0) {
+        throw new Error(apiResponse.message || "API returned error");
+      }
+
+      return apiResponse.data;
+    } catch (error) {
+      console.error("Error fetching user withdrawal requests:", error);
+      throw error;
+    }
+  }
+
+  // Create withdrawal request
+  async createWithdrawalRequest(
+    data: CreateWithdrawalRequest
   ): Promise<WithdrawalRequest> {
     try {
-      const response = await apiClient.post(
-        `/api/WithdrawalRequest/${withdrawalId}/process`,
+      const response = await apiClient.post(`/api/WithdrawalRequest`, data);
+
+      if (!response.success) {
+        throw new Error(
+          response.message || "Failed to create withdrawal request"
+        );
+      }
+
+      const apiResponse = response.data as SingleWithdrawalApiResponse;
+
+      if (apiResponse.error !== 0) {
+        throw new Error(apiResponse.message || "API returned error");
+      }
+
+      return apiResponse.data;
+    } catch (error) {
+      console.error("Error creating withdrawal request:", error);
+      throw error;
+    }
+  }
+
+  // Update withdrawal request (new endpoint)
+  async updateWithdrawalRequest(
+    withdrawalId: number,
+    data: UpdateWithdrawalRequest
+  ): Promise<WithdrawalRequest> {
+    try {
+      const response = await apiClient.put(
+        `/api/WithdrawalRequest/${withdrawalId}`,
         data
       );
 
       if (!response.success) {
         throw new Error(
-          response.message || "Failed to process withdrawal request"
+          response.message || "Failed to update withdrawal request"
         );
       }
 
@@ -155,23 +211,25 @@ class WithdrawalService {
 
       return apiResponse.data;
     } catch (error) {
-      console.error("Error processing withdrawal request:", error);
+      console.error("Error updating withdrawal request:", error);
       throw error;
     }
   }
 
-  // Approve withdrawal request
-  async approveWithdrawalRequest(
-    withdrawalId: number
+  // NEW: Update withdrawal status (replaces approve/reject/complete)
+  async updateWithdrawalStatus(
+    withdrawalId: number,
+    data: UpdateWithdrawalStatusRequest
   ): Promise<WithdrawalRequest> {
     try {
-      const response = await apiClient.post(
-        `/api/WithdrawalRequest/${withdrawalId}/approve`
+      const response = await apiClient.put(
+        `/api/WithdrawalRequest/${withdrawalId}/status`,
+        data
       );
 
       if (!response.success) {
         throw new Error(
-          response.message || "Failed to approve withdrawal request"
+          response.message || "Failed to update withdrawal status"
         );
       }
 
@@ -183,100 +241,40 @@ class WithdrawalService {
 
       return apiResponse.data;
     } catch (error) {
-      console.error("Error approving withdrawal request:", error);
+      console.error("Error updating withdrawal status:", error);
       throw error;
     }
   }
 
-  // Reject withdrawal request
+  // Approve withdrawal request (wrapper for new API)
+  async approveWithdrawalRequest(
+    withdrawalId: number,
+    billImageLink: string
+  ): Promise<WithdrawalRequest> {
+    return this.updateWithdrawalStatus(withdrawalId, {
+      status: "approved",
+      message: billImageLink,
+    });
+  }
+
+  // Reject withdrawal request (wrapper for new API)
   async rejectWithdrawalRequest(
     withdrawalId: number,
     rejectionReason: string
   ): Promise<WithdrawalRequest> {
-    try {
-      const response = await apiClient.post(
-        `/api/WithdrawalRequest/${withdrawalId}/reject`,
-        { rejectionReason }
-      );
-
-      if (!response.success) {
-        throw new Error(
-          response.message || "Failed to reject withdrawal request"
-        );
-      }
-
-      const apiResponse = response.data as SingleWithdrawalApiResponse;
-
-      if (apiResponse.error !== 0) {
-        throw new Error(apiResponse.message || "API returned error");
-      }
-
-      return apiResponse.data;
-    } catch (error) {
-      console.error("Error rejecting withdrawal request:", error);
-      throw error;
-    }
+    return this.updateWithdrawalStatus(withdrawalId, {
+      status: "rejected",
+      message: rejectionReason,
+    });
   }
 
-  // Complete withdrawal request
+  // Complete withdrawal request (wrapper for new API)
   async completeWithdrawalRequest(
-    withdrawalId: number,
-    transactionReference?: string
+    withdrawalId: number
   ): Promise<WithdrawalRequest> {
-    try {
-      const response = await apiClient.post(
-        `/api/WithdrawalRequest/${withdrawalId}/complete`,
-        { transactionReference }
-      );
-
-      if (!response.success) {
-        throw new Error(
-          response.message || "Failed to complete withdrawal request"
-        );
-      }
-
-      const apiResponse = response.data as SingleWithdrawalApiResponse;
-
-      if (apiResponse.error !== 0) {
-        throw new Error(apiResponse.message || "API returned error");
-      }
-
-      return apiResponse.data;
-    } catch (error) {
-      console.error("Error completing withdrawal request:", error);
-      throw error;
-    }
-  }
-
-  // Get withdrawal limits
-  async getWithdrawalLimits(): Promise<WithdrawalLimits> {
-    try {
-      const response = await apiClient.get("/api/WithdrawalRequest/limits");
-
-      if (!response.success) {
-        throw new Error(
-          response.message || "Failed to fetch withdrawal limits"
-        );
-      }
-
-      // Handle both formats - direct data or wrapped in API response
-      const data = response.data as any;
-
-      if (data.error !== undefined && data.error !== 0) {
-        throw new Error(data.message || "API returned error");
-      }
-
-      return data.data || data;
-    } catch (error) {
-      console.error("Error fetching withdrawal limits:", error);
-      // Return default limits if API fails
-      return {
-        minAmount: 50000,
-        maxAmount: 50000000,
-        dailyLimit: 10000000,
-        monthlyLimit: 100000000,
-      };
-    }
+    return this.updateWithdrawalStatus(withdrawalId, {
+      status: "completed",
+    });
   }
 
   // Delete withdrawal request
@@ -338,6 +336,35 @@ class WithdrawalService {
         todayAmount: 0,
       };
     }
+  }
+
+  // LEGACY: Process withdrawal request (deprecated but kept for compatibility)
+  async processWithdrawalRequest(
+    withdrawalId: number,
+    data: any
+  ): Promise<WithdrawalRequest> {
+    console.warn(
+      "processWithdrawalRequest is deprecated. Use updateWithdrawalStatus instead."
+    );
+
+    // Convert legacy format to new format
+    if (data.status === "Approved") {
+      return this.updateWithdrawalStatus(withdrawalId, {
+        status: "approved",
+        message: data.billImageLink || data.rejectionReason || "",
+      });
+    } else if (data.status === "Rejected") {
+      return this.updateWithdrawalStatus(withdrawalId, {
+        status: "rejected",
+        message: data.rejectionReason || "",
+      });
+    } else if (data.status === "Completed") {
+      return this.updateWithdrawalStatus(withdrawalId, {
+        status: "completed",
+      });
+    }
+
+    throw new Error("Invalid status for processing withdrawal");
   }
 }
 

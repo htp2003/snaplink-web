@@ -7,7 +7,7 @@ import {
   WithdrawalFilters,
   WithdrawalStats,
   SimpleWithdrawal,
-  ProcessWithdrawalRequest,
+  UpdateWithdrawalStatusRequest,
 } from "../../types/admin/Withdrawal.types";
 
 export const useWithdrawalManagement = () => {
@@ -169,123 +169,119 @@ export const useWithdrawalManagement = () => {
     }
   };
 
-  // Approve withdrawal request
-  const approveWithdrawalRequest = async (
-    withdrawalId: number
+  // Update withdrawal status - NEW unified method
+  const updateWithdrawalStatus = async (
+    withdrawalId: number,
+    status: "approved" | "rejected" | "completed",
+    message?: string
   ): Promise<boolean> => {
     try {
-      await withdrawalService.approveWithdrawalRequest(withdrawalId);
+      const statusData: UpdateWithdrawalStatusRequest = { status };
+
+      // Add message if provided and required
+      if (message) {
+        statusData.message = message;
+      }
+
+      const updatedRequest = await withdrawalService.updateWithdrawalStatus(
+        withdrawalId,
+        statusData
+      );
 
       // Update local state
       setWithdrawalRequests((prev) =>
         prev.map((r) =>
           r.id === withdrawalId
             ? {
-                ...r,
-                requestStatus: "Approved",
+                ...updatedRequest,
                 processedAt: new Date().toISOString(),
               }
             : r
         )
       );
 
-      toast.success("Đã phê duyệt yêu cầu rút tiền!");
+      // Show success message
+      const statusMessages = {
+        approved: "Đã phê duyệt yêu cầu rút tiền!",
+        rejected: "Đã từ chối yêu cầu rút tiền!",
+        completed: "Đã hoàn thành yêu cầu rút tiền!",
+      };
+
+      toast.success(statusMessages[status]);
       return true;
     } catch (error) {
-      console.error("Error approving withdrawal request:", error);
-      toast.error("Có lỗi xảy ra khi phê duyệt");
+      console.error("Error updating withdrawal status:", error);
+
+      const errorMessages = {
+        approved: "Có lỗi xảy ra khi phê duyệt",
+        rejected: "Có lỗi xảy ra khi từ chối",
+        completed: "Có lỗi xảy ra khi hoàn thành",
+      };
+
+      toast.error(errorMessages[status]);
       return false;
     }
   };
 
-  // Reject withdrawal request
+  // Approve withdrawal request - requires bill image link
+  const approveWithdrawalRequest = async (
+    withdrawalId: number,
+    billImageLink: string
+  ): Promise<boolean> => {
+    if (!billImageLink.trim()) {
+      toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
+      return false;
+    }
+
+    return updateWithdrawalStatus(withdrawalId, "approved", billImageLink);
+  };
+
+  // Reject withdrawal request - requires rejection reason
   const rejectWithdrawalRequest = async (
     withdrawalId: number,
     reason: string
   ): Promise<boolean> => {
-    try {
-      await withdrawalService.rejectWithdrawalRequest(withdrawalId, reason);
-
-      // Update local state
-      setWithdrawalRequests((prev) =>
-        prev.map((r) =>
-          r.id === withdrawalId
-            ? {
-                ...r,
-                requestStatus: "Rejected",
-                rejectionReason: reason,
-                processedAt: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-
-      toast.success("Đã từ chối yêu cầu rút tiền!");
-      return true;
-    } catch (error) {
-      console.error("Error rejecting withdrawal request:", error);
-      toast.error("Có lỗi xảy ra khi từ chối");
+    if (!reason.trim()) {
+      toast.error("Vui lòng nhập lý do từ chối");
       return false;
     }
+
+    return updateWithdrawalStatus(withdrawalId, "rejected", reason);
   };
 
   // Complete withdrawal request
   const completeWithdrawalRequest = async (
-    withdrawalId: number,
-    transactionReference?: string
+    withdrawalId: number
   ): Promise<boolean> => {
-    try {
-      await withdrawalService.completeWithdrawalRequest(
-        withdrawalId,
-        transactionReference
-      );
-
-      // Update local state
-      setWithdrawalRequests((prev) =>
-        prev.map((r) =>
-          r.id === withdrawalId
-            ? {
-                ...r,
-                requestStatus: "Completed",
-                processedAt: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-
-      toast.success("Đã hoàn thành yêu cầu rút tiền!");
-      return true;
-    } catch (error) {
-      console.error("Error completing withdrawal request:", error);
-      toast.error("Có lỗi xảy ra khi hoàn thành");
-      return false;
-    }
+    return updateWithdrawalStatus(withdrawalId, "completed");
   };
 
-  // Process withdrawal request (generic)
+  // LEGACY: Process withdrawal request (deprecated but kept for backward compatibility)
   const processWithdrawalRequest = async (
     withdrawalId: number,
-    data: ProcessWithdrawalRequest
+    data: any
   ): Promise<boolean> => {
+    console.warn(
+      "processWithdrawalRequest is deprecated. Use specific approve/reject/complete methods instead."
+    );
+
     try {
-      await withdrawalService.processWithdrawalRequest(withdrawalId, data);
+      // Convert legacy data format to new API
+      if (data.status === "Approved") {
+        return approveWithdrawalRequest(
+          withdrawalId,
+          data.billImageLink || data.rejectionReason || ""
+        );
+      } else if (data.status === "Rejected") {
+        return rejectWithdrawalRequest(
+          withdrawalId,
+          data.rejectionReason || "No reason provided"
+        );
+      } else if (data.status === "Completed") {
+        return completeWithdrawalRequest(withdrawalId);
+      }
 
-      // Update local state
-      setWithdrawalRequests((prev) =>
-        prev.map((r) =>
-          r.id === withdrawalId
-            ? {
-                ...r,
-                requestStatus: data.status,
-                rejectionReason: data.rejectionReason,
-                processedAt: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-
-      toast.success("Đã xử lý yêu cầu rút tiền!");
-      return true;
+      return false;
     } catch (error) {
       console.error("Error processing withdrawal request:", error);
       toast.error("Có lỗi xảy ra khi xử lý");
@@ -345,10 +341,19 @@ export const useWithdrawalManagement = () => {
     // Actions
     loadWithdrawalRequests,
     getWithdrawalRequestById,
+
+    // New unified status update method
+    updateWithdrawalStatus,
+
+    // Specific methods (wrappers for updateWithdrawalStatus)
     approveWithdrawalRequest,
     rejectWithdrawalRequest,
     completeWithdrawalRequest,
+
+    // Legacy method (deprecated)
     processWithdrawalRequest,
+
+    // Filters and navigation
     updateFilters,
     clearFilters,
     handlePageChange,

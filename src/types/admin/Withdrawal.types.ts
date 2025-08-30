@@ -16,6 +16,8 @@ export interface WithdrawalRequest {
   userName: string;
   userEmail: string;
   walletBalance: number;
+  // New field for bill image link
+  billImageLink?: string | null;
 }
 
 export type WithdrawalStatus =
@@ -63,16 +65,30 @@ export interface SingleWithdrawalApiResponse {
   data: WithdrawalRequest;
 }
 
+// New types for v12 API
+export interface UpdateWithdrawalStatusRequest {
+  status: "approved" | "rejected" | "completed";
+  message?: string; // Required for approved/rejected, optional for completed
+}
+
+export interface CreateWithdrawalRequest {
+  amount: number;
+  bankAccountNumber: string;
+  bankAccountName: string;
+  bankName: string;
+}
+
+export interface UpdateWithdrawalRequest {
+  amount?: number;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+  bankName?: string;
+}
+
+// Legacy type - kept for backward compatibility but deprecated
 export interface ProcessWithdrawalRequest {
   status: WithdrawalStatus;
   rejectionReason?: string;
-}
-
-export interface WithdrawalLimits {
-  minAmount: number;
-  maxAmount: number;
-  dailyLimit: number;
-  monthlyLimit: number;
 }
 
 // For UI display
