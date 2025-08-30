@@ -26,6 +26,7 @@ import { useTransactionManagement } from "../../hooks/admin/Transaction.hooks";
 import { useWithdrawalManagement } from "../../hooks/admin/Withdrawal.hooks";
 import { Transaction } from "../../types/admin/Transaction.types";
 import { WithdrawalRequest } from "../../types/admin/Withdrawal.types";
+import { renderRejectionReasonField } from "../../utils/withdrawalUtils";
 
 type TabType = "transactions" | "withdrawals";
 
@@ -1462,18 +1463,7 @@ const TransactionManagement: React.FC = () => {
                 </div>
               </div>
 
-              {selectedWithdrawal.rejectionReason && (
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-2 text-gray-700">
-                    Lý do từ chối
-                  </h4>
-                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-                    <p className="text-sm text-red-700">
-                      {selectedWithdrawal.rejectionReason}
-                    </p>
-                  </div>
-                </div>
-              )}
+              {renderRejectionReasonField(selectedWithdrawal)}
             </div>
 
             <div className="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3">
