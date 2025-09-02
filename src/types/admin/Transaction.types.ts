@@ -37,6 +37,9 @@ export type TransactionStatus =
   | "Held" // Tiền đang được giữ trong escrow
   | "Released"; // Tiền đã được giải phóng từ escrow
 
+// NEW: Cash flow direction từ góc độ hệ thống
+export type CashFlowDirection = "in" | "out" | "neutral";
+
 export interface TransactionFilters {
   searchTerm: string;
   status: TransactionStatus | "all";
@@ -56,6 +59,13 @@ export interface TransactionStats {
   totalRevenue: number;
   totalRefunded: number;
   todayRevenue: number;
+  // NEW: Cash flow stats
+  totalCashIn: number;
+  totalCashOut: number;
+  netCashFlow: number;
+  todayCashIn: number;
+  todayCashOut: number;
+  todayNetCashFlow: number;
 }
 
 export interface TransactionHistoryParams {
@@ -115,6 +125,9 @@ export interface SimpleTransaction {
   status: TransactionStatus;
   date: string;
   relatedTo: string;
+  // NEW: Cash flow properties
+  direction: CashFlowDirection;
+  displayAmount: string;
 }
 
 // Helper type mappings for UI display
@@ -148,6 +161,37 @@ export const TransactionStatusColorMap: Record<TransactionStatus, string> = {
   Released: "bg-green-100 text-green-800",
 };
 
+// NEW: Cash flow direction mapping (từ góc độ hệ thống)
+export const TransactionCashFlowMap: Record<
+  TransactionType,
+  CashFlowDirection
+> = {
+  Purchase: "in", // + Tiền vào hệ thống từ khách
+  PhotographerFee: "out", // - Tiền ra khỏi hệ thống đến photographer
+  VenueFee: "out", // - Tiền ra khỏi hệ thống đến venue
+  PlatformFee: "in", // + Phí nền tảng thu về
+  Refund: "out", // - Hoàn tiền cho khách
+  Deposit: "in", // + Nạp tiền vào hệ thống
+  Withdrawal: "out", // - Rút tiền ra khỏi hệ thống
+  EscrowHold: "neutral", // Chuyển tiền sang trạng thái giữ
+  EscrowRelease: "neutral", // Chuyển tiền từ giữ sang active
+  EscrowRefund: "out", // - Hoàn tiền từ escrow
+};
+
+// NEW: Cash flow colors
+export const CashFlowColorMap: Record<CashFlowDirection, string> = {
+  in: "text-green-600", // Xanh lá cho tiền vào
+  out: "text-red-600", // Đỏ cho tiền ra
+  neutral: "text-gray-600", // Xám cho neutral
+};
+
+// NEW: Cash flow icons (dùng symbols đơn giản)
+export const CashFlowSymbolMap: Record<CashFlowDirection, string> = {
+  in: "+",
+  out: "-",
+  neutral: "=",
+};
+
 // Transaction types that can be refunded
 export const RefundableTransactionTypes: TransactionType[] = [
   "Purchase",
@@ -160,3 +204,29 @@ export const RefundableTransactionStatuses: TransactionStatus[] = [
   "Success",
   "Released",
 ];
+
+// NEW: Helper functions for cash flow display
+export const getCashFlowDirection = (
+  type: TransactionType
+): CashFlowDirection => {
+  return TransactionCashFlowMap[type];
+};
+
+export const formatCashFlowAmount = (
+  amount: number,
+  direction: CashFlowDirection
+): string => {
+  const symbol = CashFlowSymbolMap[direction];
+  const formattedAmount = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+
+  return direction === "neutral"
+    ? formattedAmount
+    : `${symbol}${formattedAmount}`;
+};
+
+export const getCashFlowColor = (direction: CashFlowDirection): string => {
+  return CashFlowColorMap[direction];
+};

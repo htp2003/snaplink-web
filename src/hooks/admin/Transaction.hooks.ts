@@ -7,6 +7,8 @@ import {
   TransactionFilters,
   TransactionStats,
   SimpleTransaction,
+  getCashFlowDirection,
+  formatCashFlowAmount,
 } from "../../types/admin/Transaction.types";
 
 export const useTransactionManagement = () => {
@@ -25,10 +27,13 @@ export const useTransactionManagement = () => {
     pageSize: 20,
   });
 
-  // Convert Transaction to SimpleTransaction for UI display
+  // Convert Transaction to SimpleTransaction for UI display WITH CASH FLOW
   const convertToSimpleTransaction = (
     transaction: Transaction
   ): SimpleTransaction => {
+    const direction = getCashFlowDirection(transaction.type);
+    const displayAmount = formatCashFlowAmount(transaction.amount, direction);
+
     return {
       id: transaction.transactionId,
       customerName: transaction.fromUserName || "System",
@@ -37,6 +42,9 @@ export const useTransactionManagement = () => {
       status: transaction.status,
       date: transaction.createdAt,
       relatedTo: transaction.note || `${transaction.type} transaction`,
+      // NEW: Cash flow properties
+      direction,
+      displayAmount,
     };
   };
 
@@ -118,7 +126,7 @@ export const useTransactionManagement = () => {
     });
   }, [transactions, filters]);
 
-  // Calculate statistics using actual API data
+  // Calculate statistics with CASH FLOW METRICS
   const stats: TransactionStats = useMemo(() => {
     const completed = transactions.filter((t) => t.status === "Completed");
     const success = transactions.filter((t) => t.status === "Success");
@@ -126,8 +134,10 @@ export const useTransactionManagement = () => {
     const held = transactions.filter((t) => t.status === "Held");
     const failed = transactions.filter((t) => t.status === "Failed");
 
-    // Combine completed and success for revenue calculation
+    // Combine completed and success for calculations
     const completedTransactions = [...completed, ...success];
+
+    // OLD: Legacy revenue calculation
     const totalRevenue = completedTransactions.reduce(
       (sum, t) => sum + t.amount,
       0
@@ -141,6 +151,41 @@ export const useTransactionManagement = () => {
       .filter((t) => new Date(t.createdAt).toDateString() === today)
       .reduce((sum, t) => sum + t.amount, 0);
 
+    // NEW: Cash flow calculations
+    const cashInTypes = ["Purchase", "Deposit", "PlatformFee"];
+    const cashOutTypes = [
+      "PhotographerFee",
+      "VenueFee",
+      "Refund",
+      "Withdrawal",
+      "EscrowRefund",
+    ];
+
+    const totalCashIn = completedTransactions
+      .filter((t) => cashInTypes.includes(t.type))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalCashOut = completedTransactions
+      .filter((t) => cashOutTypes.includes(t.type))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const netCashFlow = totalCashIn - totalCashOut;
+
+    // Today's cash flow
+    const todayCompletedTransactions = completedTransactions.filter(
+      (t) => new Date(t.createdAt).toDateString() === today
+    );
+
+    const todayCashIn = todayCompletedTransactions
+      .filter((t) => cashInTypes.includes(t.type))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const todayCashOut = todayCompletedTransactions
+      .filter((t) => cashOutTypes.includes(t.type))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const todayNetCashFlow = todayCashIn - todayCashOut;
+
     return {
       total: totalCount,
       completed: completed.length,
@@ -151,6 +196,13 @@ export const useTransactionManagement = () => {
       totalRevenue,
       totalRefunded,
       todayRevenue,
+      // NEW: Cash flow metrics
+      totalCashIn,
+      totalCashOut,
+      netCashFlow,
+      todayCashIn,
+      todayCashOut,
+      todayNetCashFlow,
     };
   }, [transactions, totalCount]);
 
