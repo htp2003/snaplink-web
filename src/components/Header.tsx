@@ -165,9 +165,8 @@ const Header: React.FC<HeaderProps> = ({
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search
-                  className={`h-4 w-4 transition-colors ${
-                    searchFocused ? colors.text : "text-gray-400"
-                  }`}
+                  className={`h-4 w-4 transition-colors ${searchFocused ? colors.text : "text-gray-400"
+                    }`}
                 />
               </div>
               <input
@@ -179,10 +178,9 @@ const Header: React.FC<HeaderProps> = ({
                   block w-72 pl-11 pr-4 py-2.5 border rounded-xl leading-5 bg-gray-50 
                   placeholder-gray-400 transition-all duration-200 ease-out
                   focus:outline-none focus:bg-white focus:shadow-lg focus:scale-105
-                  ${
-                    searchFocused
-                      ? `focus:ring-2 focus:${colors.ring} focus:border-transparent`
-                      : "border-gray-200 hover:border-gray-300"
+                  ${searchFocused
+                    ? `focus:ring-2 focus:${colors.ring} focus:border-transparent`
+                    : "border-gray-200 hover:border-gray-300"
                   }
                   text-sm font-medium
                 `}
@@ -201,20 +199,7 @@ const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Notifications with badge */}
-            <div className="relative">
-              <button className="relative p-3 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200 hover:scale-105 group">
-                <Bell className="h-5 w-5" />
-                {/* Enhanced notification badge */}
-                <span className="absolute top-2 right-2 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg">
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
-                      3
-                    </span>
-                  </span>
-                </span>
-              </button>
-            </div>
+            {/*will add later*/}
 
             {/* Settings */}
             <button className="p-3 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-200 hover:scale-105">
@@ -250,9 +235,8 @@ const Header: React.FC<HeaderProps> = ({
                     </p>
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
-                      showUserMenu ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showUserMenu ? "rotate-180" : ""
+                      }`}
                   />
                 </div>
               </button>
