@@ -507,11 +507,10 @@ const LocationListCard: React.FC<{
           {venue.venueName}
         </h3>
         <span
-          className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ml-2 ${
-            venue.isActive
-              ? "bg-green-100 text-green-800 border border-green-200"
-              : "bg-gray-100 text-gray-800 border border-gray-200"
-          }`}
+          className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ml-2 ${venue.isActive
+            ? "bg-green-100 text-green-800 border border-green-200"
+            : "bg-gray-100 text-gray-800 border border-gray-200"
+            }`}
         >
           {venue.isActive ? "Active" : "Inactive"}
         </span>
@@ -683,124 +682,122 @@ const ImageGallery: React.FC<{
   onSetPrimary,
   loading,
 }) => {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [searchTerm, setSearchTerm] = useState("");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredImages = images.filter(
-    (img) =>
-      searchTerm === "" ||
-      (img.caption &&
-        img.caption.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    const filteredImages = images.filter(
+      (img) =>
+        searchTerm === "" ||
+        (img.caption &&
+          img.caption.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to {itemInfo.type} List
-          </button>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {itemInfo.name}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {filteredImages.length} images found
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onBack}
+              className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to {itemInfo.type} List
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {itemInfo.name}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {filteredImages.length} images found
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search captions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center border border-gray-300 rounded-lg">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 ${viewMode === "grid"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:text-gray-800"
+                  }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 ${viewMode === "list"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:text-gray-800"
+                  }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Images */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading images...</p>
+          </div>
+        ) : filteredImages.length === 0 ? (
+          <div className="text-center py-12">
+            <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">
+              No images found for this {itemInfo.type.toLowerCase()}
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search captions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+        ) : (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                : "space-y-4"
+            }
+          >
+            {filteredImages.map((image) =>
+              viewMode === "grid" ? (
+                <ImageGridCard
+                  key={image.id}
+                  image={image}
+                  onDelete={onDelete}
+                  onView={onView}
+                  onSetPrimary={onSetPrimary}
+                  loading={loading}
+                />
+              ) : (
+                <ImageListItem
+                  key={image.id}
+                  image={image}
+                  onDelete={onDelete}
+                  onView={onView}
+                  onSetPrimary={onSetPrimary}
+                  loading={loading}
+                />
+              )
+            )}
           </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center border border-gray-300 rounded-lg">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 ${
-                viewMode === "grid"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 ${
-                viewMode === "list"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-
-      {/* Images */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading images...</p>
-        </div>
-      ) : filteredImages.length === 0 ? (
-        <div className="text-center py-12">
-          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">
-            No images found for this {itemInfo.type.toLowerCase()}
-          </p>
-        </div>
-      ) : (
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-              : "space-y-4"
-          }
-        >
-          {filteredImages.map((image) =>
-            viewMode === "grid" ? (
-              <ImageGridCard
-                key={image.id}
-                image={image}
-                onDelete={onDelete}
-                onView={onView}
-                onSetPrimary={onSetPrimary}
-                loading={loading}
-              />
-            ) : (
-              <ImageListItem
-                key={image.id}
-                image={image}
-                onDelete={onDelete}
-                onView={onView}
-                onSetPrimary={onSetPrimary}
-                loading={loading}
-              />
-            )
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+    );
+  };
 
 // ===== IMAGE CARD COMPONENTS (Keep existing) =====
 const ImageGridCard: React.FC<{
@@ -1118,27 +1115,27 @@ const PhotographerCard: React.FC<{
 
               {photographer.verificationStatus ===
                 VerificationStatus.PENDING && (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() =>
-                      onVerify(photographer.id, VerificationStatus.REJECTED)
-                    }
-                    disabled={loading}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() =>
-                      onVerify(photographer.id, VerificationStatus.VERIFIED)
-                    }
-                    disabled={loading}
-                    className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
-                  >
-                    Verify
-                  </button>
-                </div>
-              )}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() =>
+                        onVerify(photographer.id, VerificationStatus.REJECTED)
+                      }
+                      disabled={loading}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() =>
+                        onVerify(photographer.id, VerificationStatus.VERIFIED)
+                      }
+                      disabled={loading}
+                      className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -1319,36 +1316,9 @@ const ContentModeration: React.FC = () => {
               <p className="mt-2 text-gray-600">
                 Review and moderate user-generated content across the platform
               </p>
-              {apiStatus && (
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <span className="text-sm font-medium text-blue-800">
-                      API Status:
-                    </span>
-                    <span className="text-sm text-blue-700 ml-1">
-                      {apiStatus}
-                    </span>
-                  </div>
-                </div>
-              )}
+
             </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={testAPI}
-                className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-              >
-                <Shield className="w-4 h-4" />
-                <span>Test API</span>
-              </button>
-              <button
-                onClick={refreshData}
-                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh</span>
-              </button>
-            </div>
+
           </div>
         </div>
 
@@ -1366,20 +1336,18 @@ const ContentModeration: React.FC = () => {
                     setActiveTab(tab.key);
                     setNavigationState({ level: "category" }); // Reset navigation when switching tabs
                   }}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
-                    activeTab === tab.key
-                      ? "border-green-500 text-green-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${activeTab === tab.key
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
                 >
                   <tab.icon className="w-5 h-5" />
                   <span>{tab.label}</span>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      activeTab === tab.key
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${activeTab === tab.key
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     {tab.count}
                   </span>
@@ -1623,11 +1591,10 @@ const VenueCard: React.FC<{
         {venue.venueName}
       </h3>
       <span
-        className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${
-          venue.isActive
-            ? "bg-green-100 text-green-800 border border-green-200"
-            : "bg-gray-100 text-gray-800 border border-gray-200"
-        }`}
+        className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${venue.isActive
+          ? "bg-green-100 text-green-800 border border-green-200"
+          : "bg-gray-100 text-gray-800 border border-gray-200"
+          }`}
       >
         {venue.isActive ? "Active" : "Inactive"}
       </span>

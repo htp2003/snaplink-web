@@ -1,4 +1,4 @@
-// pages/admin/Dashboard.tsx - FIXED VERSION
+// pages/admin/Dashboard.tsx - SIMPLIFIED VERSION
 import React from "react";
 import {
   Users,
@@ -8,12 +8,9 @@ import {
   AlertTriangle,
   DollarSign,
   TrendingUp,
-  UserCheck,
   Building,
-  Star,
   Clock,
   RefreshCw,
-  TrendingDown,
 } from "lucide-react";
 import StatsCard from "../../components/dashboard/StatsCard";
 import ChartContainer from "../../components/dashboard/ChartContainer";
@@ -82,15 +79,10 @@ const AdminDashboard: React.FC = () => {
 
         {/* Loading Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 rounded w-32 mb-4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-            </div>
-          ))}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-32 mb-4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -204,7 +196,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Stats Cards */}
+      {/* Main Stats Cards - Simplified */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Tổng người dùng"
@@ -240,8 +232,8 @@ const AdminDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Secondary Stats - Simplified */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatsCard
           title="Tổng doanh thu"
           value={formatCurrency(overview.totalRevenue)}
@@ -258,80 +250,35 @@ const AdminDashboard: React.FC = () => {
           change="Chưa có dữ liệu"
           trend="neutral"
         />
-        <StatsCard
-          title="Đánh giá"
-          value={formatNumber(overview.totalReviews)}
-          icon={Star}
-          color="yellow"
-          change={overview.totalReviews > 0 ? "+6%" : "0%"}
-          trend="up"
-        />
-        <StatsCard
-          title="Moderator"
-          value={formatNumber(overview.totalModerators)}
-          icon={UserCheck}
-          color="indigo"
-          change={overview.totalModerators > 0 ? "Ổn định" : "0"}
-          trend="neutral"
-        />
+        {/* Alert for pending withdrawals only */}
+        {overview.pendingWithdrawals > 0 && (
+          <StatsCard
+            title="Chờ rút tiền"
+            value={formatNumber(overview.pendingWithdrawals)}
+            icon={Clock}
+            color="orange"
+            alert={true}
+            change="Cần xử lý"
+            trend="attention"
+          />
+        )}
       </div>
 
-      {/* Alert Stats */}
-      {(overview.pendingWithdrawals > 0 ||
-        overview.pendingVerifications > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {overview.pendingWithdrawals > 0 && (
-            <StatsCard
-              title="Chờ rút tiền"
-              value={formatNumber(overview.pendingWithdrawals)}
-              icon={Clock}
-              color="orange"
-              alert={true}
-              change="Cần xử lý"
-              trend="attention"
-            />
-          )}
-          {overview.pendingVerifications > 0 && (
-            <StatsCard
-              title="Chờ xác thực"
-              value={formatNumber(overview.pendingVerifications)}
-              icon={AlertTriangle}
-              color="red"
-              alert={true}
-              change="Cần duyệt"
-              trend="attention"
-            />
-          )}
-        </div>
-      )}
-
-      {/* Charts Section */}
+      {/* Charts Section - Only Revenue Chart */}
       {charts && (
         <>
-          {/* Revenue & User Growth Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart Only */}
+          <div className="grid grid-cols-1 gap-6">
             <ChartContainer
               title="Doanh thu theo thời gian"
               data={charts.revenueChart.map((item) => ({
                 name: new Date(item.date).toLocaleDateString("vi-VN"),
                 value: item.revenue,
-                label: `${formatCurrency(item.revenue)} (${
-                  item.transactions
-                } giao dịch)`,
+                label: `${formatCurrency(item.revenue)} (${item.transactions
+                  } giao dịch)`,
               }))}
               type="line"
               color="#10B981"
-              height={300}
-            />
-            <ChartContainer
-              title="Tăng trưởng người dùng"
-              data={charts.userGrowthChart.map((item) => ({
-                name: new Date(item.date).toLocaleDateString("vi-VN"),
-                value: item.newUsers,
-                label: `${item.newUsers} người dùng mới`,
-              }))}
-              type="bar"
-              color="#3B82F6"
               height={300}
             />
           </div>
@@ -453,7 +400,7 @@ const AdminDashboard: React.FC = () => {
         </>
       )}
 
-      {/* Bottom Section - Activities & Quick Actions */}
+      {/* Bottom Section - Activities & Quick Actions (Simplified) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
@@ -515,37 +462,10 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-
-              {/* Recent Reviews */}
-              {activities.recentReviews.slice(0, 2).map((review) => (
-                <div
-                  key={`review-${review.id}`}
-                  className="flex items-center justify-between py-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {review.reviewerName}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Đánh giá {review.targetName} •{" "}
-                        {"⭐".repeat(review.rating)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">
-                      {formatRelativeTime(review.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
             </div>
 
             {activities.recentUsers.length === 0 &&
-              activities.recentTransactions.length === 0 &&
-              activities.recentReviews.length === 0 && (
+              activities.recentTransactions.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>Chưa có hoạt động gần đây</p>
@@ -554,16 +474,55 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Simplified */}
         <div className="lg:col-span-1">
-          <QuickActions
-            userRole="admin"
-            pendingWithdrawals={quickActions.pendingWithdrawals.length}
-            pendingVerifications={quickActions.pendingVerifications.length}
-            reportedContent={quickActions.reportedContent.length}
-            withdrawalsList={quickActions.pendingWithdrawals}
-            verificationsList={quickActions.pendingVerifications}
-          />
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Thao tác nhanh
+            </h3>
+
+            <div className="space-y-3">
+              {/* Only show withdrawal management if there are pending withdrawals */}
+              {quickActions.pendingWithdrawals.length > 0 && (
+                <button className="w-full flex items-center gap-3 p-3 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg text-left transition-colors">
+                  <Clock className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="font-medium text-orange-900">
+                      Quản lý rút tiền
+                    </p>
+                    <p className="text-sm text-orange-700">
+                      {quickActions.pendingWithdrawals.length} yêu cầu chờ xử lý
+                    </p>
+                  </div>
+                </button>
+              )}
+
+              {/* Basic management actions */}
+              <button className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-left transition-colors">
+                <Users className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900">
+                    Quản lý người dùng
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Xem và quản lý tài khoản
+                  </p>
+                </div>
+              </button>
+
+              <button className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg text-left transition-colors">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-900">
+                    Quản lý giao dịch
+                  </p>
+                  <p className="text-sm text-green-700">
+                    Xem lịch sử giao dịch
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

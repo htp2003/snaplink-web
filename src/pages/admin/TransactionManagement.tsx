@@ -110,8 +110,74 @@ const TransactionManagement: React.FC = () => {
     }).format(amount);
   };
 
+  // Thay thế các hàm trong TransactionManagement.tsx
+
+  // Hàm format đơn giản hơn, chuyển sang giờ VN (UTC+7)
   const formatDateTime = (dateTimeString: string): string => {
-    return new Date(dateTimeString).toLocaleString("vi-VN");
+    if (!dateTimeString) return '';
+
+    const date = new Date(dateTimeString);
+
+    // Kiểm tra date có hợp lệ không
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
+    // Chuyển sang giờ VN (UTC+7)
+    const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+    const vnDate = new Date(utc + 7 * 60 * 60000);
+
+    return vnDate.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
+
+  // VN timezone-aware helpers cho table displays
+  const formatDateVN = (dateTimeString: string): string => {
+    if (!dateTimeString) return '';
+
+    const date = new Date(dateTimeString);
+
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
+    // Chuyển sang giờ VN (UTC+7)
+    const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+    const vnDate = new Date(utc + 7 * 60 * 60000);
+
+    return vnDate.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  const formatTimeVN = (dateTimeString: string): string => {
+    if (!dateTimeString) return '';
+
+    const date = new Date(dateTimeString);
+
+    if (isNaN(date.getTime())) {
+      return 'Invalid Time';
+    }
+
+    // Chuyển sang giờ VN (UTC+7)
+    const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+    const vnDate = new Date(utc + 7 * 60 * 60000);
+
+    return vnDate.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   };
 
   const getTransactionTypeDisplay = (type: string): string => {
@@ -974,14 +1040,10 @@ const TransactionManagement: React.FC = () => {
 
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium">
-                        {new Date(transaction.createdAt).toLocaleDateString(
-                          "vi-VN"
-                        )}
+                        {formatDateVN(transaction.createdAt)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {new Date(transaction.createdAt).toLocaleTimeString(
-                          "vi-VN"
-                        )}
+                        {formatTimeVN(transaction.createdAt)}
                       </div>
                     </td>
 
@@ -1045,7 +1107,7 @@ const TransactionManagement: React.FC = () => {
                   ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Người dùng
+                  Email người dùng
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Số tiền rút (-)
@@ -1080,9 +1142,9 @@ const TransactionManagement: React.FC = () => {
                       <div className="font-medium text-gray-900">
                         {withdrawal.userName}
                       </div>
-                      <div className="text-gray-500">
+                      {/* <div className="text-gray-500">
                         {withdrawal.userEmail}
-                      </div>
+                      </div> */}
                       <div className="text-xs text-blue-600">
                         Ví hiện tại: {formatCurrency(withdrawal.walletBalance)}
                       </div>
@@ -1120,14 +1182,10 @@ const TransactionManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium">
-                      {new Date(withdrawal.requestedAt).toLocaleDateString(
-                        "vi-VN"
-                      )}
+                      {formatDateVN(withdrawal.requestedAt)}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {new Date(withdrawal.requestedAt).toLocaleTimeString(
-                        "vi-VN"
-                      )}
+                      {formatTimeVN(withdrawal.requestedAt)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
