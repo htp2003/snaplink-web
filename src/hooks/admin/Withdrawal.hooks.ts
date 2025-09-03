@@ -193,9 +193,9 @@ export const useWithdrawalManagement = () => {
         prev.map((r) =>
           r.id === withdrawalId
             ? {
-                ...updatedRequest,
-                processedAt: new Date().toISOString(),
-              }
+              ...updatedRequest,
+              processedAt: new Date().toISOString(),
+            }
             : r
         )
       );
@@ -251,9 +251,41 @@ export const useWithdrawalManagement = () => {
 
   // Complete withdrawal request
   const completeWithdrawalRequest = async (
-    withdrawalId: number
+    withdrawalId: number,
+    billImageLink: string
   ): Promise<boolean> => {
-    return updateWithdrawalStatus(withdrawalId, "completed");
+    if (!billImageLink.trim()) {
+      toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
+      return false;
+    }
+
+    try {
+      // COPY Y CHANG LOGIC TỪ rejectWithdrawalRequest
+      const updatedRequest = await withdrawalService.completeWithdrawalRequest(
+        withdrawalId,
+        billImageLink
+      );
+
+      // Update local state - SAME AS REJECT
+      setWithdrawalRequests((prev) =>
+        prev.map((r) =>
+          r.id === withdrawalId
+            ? {
+              ...updatedRequest,
+              processedAt: new Date().toISOString(),
+              billImageLink: billImageLink, // Store bill image like rejection reason
+            }
+            : r
+        )
+      );
+
+      toast.success("Đã hoàn thành yêu cầu rút tiền!");
+      return true;
+    } catch (error) {
+      console.error("Error completing withdrawal request:", error);
+      toast.error("Có lỗi xảy ra khi hoàn thành rút tiền");
+      return false;
+    }
   };
 
   // LEGACY: Process withdrawal request (deprecated but kept for backward compatibility)
@@ -262,26 +294,39 @@ export const useWithdrawalManagement = () => {
     data: any
   ): Promise<boolean> => {
     console.warn(
-      "processWithdrawalRequest is deprecated. Use specific approve/reject/complete methods instead."
+      "processWithdrawalRequest is deprecated. Use completeWithdrawalRequest or rejectWithdrawalRequest instead."
     );
 
     try {
-      // Convert legacy data format to new API
-      if (data.status === "Approved") {
-        return approveWithdrawalRequest(
-          withdrawalId,
-          data.billImageLink || data.rejectionReason || ""
-        );
+      // Convert legacy data format to new workflow
+      if (data.status === "Completed") {
+        // Use bill image from billImageLink field or message field
+        const billImageLink = data.billImageLink || data.message || "";
+        if (!billImageLink.trim()) {
+          toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
+          return false;
+        }
+        return completeWithdrawalRequest(withdrawalId, billImageLink);
+
+      } else if (data.status === "Approved") {
+        // Legacy "Approved" status -> convert to "Completed" 
+        const billImageLink = data.billImageLink || data.message || "";
+        if (!billImageLink.trim()) {
+          toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
+          return false;
+        }
+        return completeWithdrawalRequest(withdrawalId, billImageLink);
+
       } else if (data.status === "Rejected") {
-        return rejectWithdrawalRequest(
-          withdrawalId,
-          data.rejectionReason || "No reason provided"
-        );
-      } else if (data.status === "Completed") {
-        return completeWithdrawalRequest(withdrawalId);
+        // Use rejection reason from rejectionReason field or message field
+        const rejectionReason = data.rejectionReason || data.message || "No reason provided";
+        return rejectWithdrawalRequest(withdrawalId, rejectionReason);
       }
 
+      console.error("Invalid status for processing withdrawal:", data.status);
+      toast.error("Trạng thái không hợp lệ");
       return false;
+
     } catch (error) {
       console.error("Error processing withdrawal request:", error);
       toast.error("Có lỗi xảy ra khi xử lý");

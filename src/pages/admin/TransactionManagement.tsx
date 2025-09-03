@@ -93,7 +93,7 @@ const TransactionManagement: React.FC = () => {
   const [withdrawalActionModal, setWithdrawalActionModal] = useState<{
     show: boolean;
     withdrawal: WithdrawalRequest | null;
-    action: "approve" | "reject" | "complete" | null;
+    action: "complete" | "reject" | null; // Remove "approve"
   }>({
     show: false,
     withdrawal: null,
@@ -245,12 +245,13 @@ const TransactionManagement: React.FC = () => {
     let success = false;
 
     switch (action) {
-      case "approve":
+      case "complete": // Changed from "approve" 
         if (!billImageLink.trim()) {
           toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
           return;
         }
-        success = await approveWithdrawalRequest(withdrawal.id, billImageLink);
+        // Use new method: complete with bill image directly
+        success = await completeWithdrawalRequest(withdrawal.id, billImageLink);
         break;
       case "reject":
         if (!rejectionReason.trim()) {
@@ -258,9 +259,6 @@ const TransactionManagement: React.FC = () => {
           return;
         }
         success = await rejectWithdrawalRequest(withdrawal.id, rejectionReason);
-        break;
-      case "complete":
-        success = await completeWithdrawalRequest(withdrawal.id);
         break;
     }
 
@@ -1149,11 +1147,11 @@ const TransactionManagement: React.FC = () => {
                               setWithdrawalActionModal({
                                 show: true,
                                 withdrawal,
-                                action: "approve",
+                                action: "complete",
                               })
                             }
                             className="text-green-600 hover:text-green-900"
-                            title="Phê duyệt"
+                            title="Hoàn thành & Chuyển tiền"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -1173,21 +1171,7 @@ const TransactionManagement: React.FC = () => {
                         </>
                       )}
 
-                      {withdrawal.requestStatus === "Approved" && (
-                        <button
-                          onClick={() =>
-                            setWithdrawalActionModal({
-                              show: true,
-                              withdrawal,
-                              action: "complete",
-                            })
-                          }
-                          className="text-purple-600 hover:text-purple-900"
-                          title="Hoàn thành"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
+
                     </div>
                   </td>
                 </tr>
@@ -1768,12 +1752,12 @@ const TransactionManagement: React.FC = () => {
                     setWithdrawalActionModal({
                       show: true,
                       withdrawal: w,
-                      action: "approve",
+                      action: "complete",
                     });
                   }}
                   className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
                 >
-                  Phê duyệt
+                  Hoàn thành và Chuyển tiền
                 </button>
                 <button
                   onClick={() => {
@@ -1901,17 +1885,18 @@ const TransactionManagement: React.FC = () => {
       )
     )
       return null;
+
     const w = withdrawalActionModal.withdrawal;
     const action = withdrawalActionModal.action;
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-[9999]">
         <div className="bg-white rounded-lg max-w-md w-full mx-4">
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center space-x-3">
               <h3 className="text-lg font-bold">
-                {action === "approve" && "Phê duyệt yêu cầu"}
-                {action === "reject" && "Từ chối yêu cầu"}
                 {action === "complete" && "Hoàn thành rút tiền"}
+                {action === "reject" && "Từ chối yêu cầu"}
               </h3>
               {action === "complete" && (
                 <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
@@ -1936,6 +1921,7 @@ const TransactionManagement: React.FC = () => {
           </div>
 
           <div className="p-6">
+            {/* Cash Flow Warning for Complete Action */}
             {action === "complete" && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center">
@@ -1950,6 +1936,7 @@ const TransactionManagement: React.FC = () => {
               </div>
             )}
 
+            {/* Withdrawal Information */}
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">ID:</span>
@@ -1973,7 +1960,8 @@ const TransactionManagement: React.FC = () => {
               </div>
             </div>
 
-            {action === "approve" && (
+            {/* Bill Image Input for Complete Action */}
+            {action === "complete" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Link hình ảnh hóa đơn <span className="text-red-500">*</span>
@@ -1986,12 +1974,12 @@ const TransactionManagement: React.FC = () => {
                   placeholder="https://example.com/images/bill-proof.jpg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Nhập link hình ảnh chứng từ chuyển tiền làm bằng chứng phê
-                  duyệt
+                  Nhập link hình ảnh chứng từ chuyển tiền làm bằng chứng hoàn thành
                 </p>
               </div>
             )}
 
+            {/* Rejection Reason Input for Reject Action */}
             {action === "reject" && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2007,6 +1995,7 @@ const TransactionManagement: React.FC = () => {
               </div>
             )}
 
+            {/* Action Buttons */}
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {
@@ -2024,29 +2013,21 @@ const TransactionManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleWithdrawalAction}
-                className={`px-4 py-2 text-white rounded-md flex items-center ${action === "approve"
+                className={`px-4 py-2 text-white rounded-md flex items-center ${action === "complete"
                   ? "bg-green-500 hover:bg-green-600"
-                  : action === "reject"
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-purple-500 hover:bg-purple-600"
+                  : "bg-red-500 hover:bg-red-600"
                   }`}
               >
-                {action === "approve" && (
+                {action === "complete" && (
                   <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Phê duyệt
+                    <TrendingDown className="w-4 h-4 mr-2" />
+                    Hoàn thành
                   </>
                 )}
                 {action === "reject" && (
                   <>
                     <X className="w-4 h-4 mr-2" />
                     Từ chối
-                  </>
-                )}
-                {action === "complete" && (
-                  <>
-                    <TrendingDown className="w-4 h-4 mr-2" />
-                    Hoàn thành
                   </>
                 )}
               </button>

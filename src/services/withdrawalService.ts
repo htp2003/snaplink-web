@@ -222,10 +222,15 @@ class WithdrawalService {
     data: UpdateWithdrawalStatusRequest
   ): Promise<WithdrawalRequest> {
     try {
+      console.log("API Call - withdrawalId:", withdrawalId); // Debug log
+      console.log("API Call - data:", JSON.stringify(data)); // Debug log
+
       const response = await apiClient.put(
         `/api/WithdrawalRequest/${withdrawalId}/status`,
-        data
+        data // Đảm bảo data có message field
       );
+
+      console.log("API Response:", response); // Debug log
 
       if (!response.success) {
         throw new Error(
@@ -270,10 +275,17 @@ class WithdrawalService {
 
   // Complete withdrawal request (wrapper for new API)
   async completeWithdrawalRequest(
-    withdrawalId: number
+    withdrawalId: number,
+    billImageLink: string
   ): Promise<WithdrawalRequest> {
+    if (!billImageLink.trim()) {
+      throw new Error("Bill image link is required for completing withdrawal");
+    }
+
+    // COPY Y CHANG LOGIC TỪ rejectWithdrawalRequest
     return this.updateWithdrawalStatus(withdrawalId, {
       status: "completed",
+      message: billImageLink, // Same structure as reject
     });
   }
 
