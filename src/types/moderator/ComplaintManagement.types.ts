@@ -1,3 +1,5 @@
+import { PhotoDeliveryResponse } from "../../services/photoDeliveryService";
+
 // Enums
 export enum ComplaintStatus {
   UNDER_REVIEW = "Under Review",
@@ -174,6 +176,12 @@ export interface ComplaintTableColumn {
     record: ComplaintResponse,
     index: number
   ) => React.ReactNode;
+}
+
+// Update ComplaintManagement.types.ts - Add this interface
+export interface ComplaintDetailWithPhotoDelivery
+  extends ComplaintDetailResponse {
+  photoDelivery?: PhotoDeliveryResponse | null;
 }
 
 // Status badge colors

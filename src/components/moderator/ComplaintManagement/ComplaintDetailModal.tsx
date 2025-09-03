@@ -1,3 +1,4 @@
+// Updated ComplaintDetailModal.tsx
 import React from "react";
 import { createPortal } from "react-dom";
 import {
@@ -8,28 +9,38 @@ import {
   MessageSquare,
   AlertTriangle,
   CheckCircle,
+  Camera,
+  ExternalLink,
+  Calendar,
+  Image,
+  FolderOpen,
 } from "lucide-react";
 import {
   ComplaintDetailResponse,
   STATUS_COLORS,
   ComplaintStatus,
 } from "../../../types/moderator/ComplaintManagement.types";
+import { PhotoDeliveryResponse } from "../../../services/photoDeliveryService";
 import { bookingService } from "../../../services/bookingService";
 
 interface ComplaintDetailModalProps {
   complaint: ComplaintDetailResponse | null;
+  photoDelivery?: PhotoDeliveryResponse | null;
   isOpen: boolean;
   onClose: () => void;
   loading: boolean;
+  photoDeliveryLoading?: boolean;
   onUpdateStatus?: (id: number, status: string) => Promise<boolean>;
   onAssignModerator?: (id: number, moderatorId: number) => Promise<boolean>;
 }
 
 const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   complaint,
+  photoDelivery,
   isOpen,
   onClose,
   loading,
+  photoDeliveryLoading = false,
   onUpdateStatus,
   onAssignModerator,
 }) => {
@@ -59,22 +70,19 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
     setIsProcessing(true);
     try {
-      // Step 1: Assign moderator trước
+      // Step 1: Assign moderator
       console.log(
         "Step 1: Assigning moderator ID 1 to complaint:",
         complaint.complaintId
       );
-
       const assignSuccess = await onAssignModerator(complaint.complaintId, 1);
       if (!assignSuccess) {
         throw new Error("Failed to assign moderator");
       }
-
       console.log("Step 1 completed: Moderator assigned successfully");
 
-      // Step 2: Update status thành Resolved bằng PUT API
+      // Step 2: Update status to Resolved
       console.log("Step 2: Updating complaint status to Resolved");
-
       const updateSuccess = await onUpdateStatus(
         complaint.complaintId,
         "Resolved"
@@ -83,7 +91,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
       if (updateSuccess) {
         console.log("Step 2 completed: Complaint status updated to Resolved");
 
-        // Step 3: Nếu có bookingId, cancel booking
+        // Step 3: If has bookingId, cancel booking
         if (complaint.bookingId) {
           console.log("Step 3: Cancelling booking:", complaint.bookingId);
           try {
@@ -91,13 +99,11 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             console.log("Step 3 completed: Booking cancelled successfully");
           } catch (bookingError) {
             console.warn("Failed to cancel booking:", bookingError);
-            // Không throw error, complaint đã resolve thành công
           }
         }
-
         onClose();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Resolve process failed:", error);
       alert("Failed to resolve complaint: " + error.message);
     } finally {
@@ -117,7 +123,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
       try {
         const success = await onUpdateStatus(complaint.complaintId, "Rejected");
         if (success) {
-          // Nếu có bookingId, complete booking (vì complaint rejected = không có vấn đề)
+          // If has bookingId, complete booking (complaint rejected = no issue)
           if (complaint.bookingId) {
             console.log(
               "Completing booking after rejecting complaint:",
@@ -130,7 +136,6 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               );
             } catch (bookingError) {
               console.warn("Failed to complete booking:", bookingError);
-              // Không throw error, complaint đã reject thành công
             }
           }
           onClose();
@@ -140,6 +145,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
       }
     }
   };
+
   if (!isOpen) return null;
 
   const getStatusBadge = (status: string) => {
@@ -148,6 +154,31 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
     return (
       <span
         className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  const getPhotoDeliveryStatusBadge = (status: string) => {
+    let colorClass = "bg-gray-100 text-gray-800";
+
+    switch (status?.toLowerCase()) {
+      case "pending":
+        colorClass = "bg-yellow-100 text-yellow-800";
+        break;
+      case "uploaded":
+      case "delivered":
+        colorClass = "bg-green-100 text-green-800";
+        break;
+      case "expired":
+        colorClass = "bg-red-100 text-red-800";
+        break;
+    }
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}
       >
         {status}
       </span>
@@ -165,6 +196,10 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
     });
   };
 
+  const handleDriveLinkClick = (driveLink: string) => {
+    window.open(driveLink, "_blank", "noopener,noreferrer");
+  };
+
   const modalContent = (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -175,7 +210,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
       {/* Modal Container */}
       <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
+        <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -201,7 +236,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               </div>
             </div>
           ) : complaint ? (
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
               {/* Status and Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -275,6 +310,80 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* Photo Delivery Information */}
+              {complaint.bookingId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Camera className="inline h-4 w-4 mr-1" />
+                    Photo Delivery Information (Booking ID:{" "}
+                    {complaint.bookingId})
+                  </label>
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    {photoDeliveryLoading ? (
+                      <div className="animate-pulse">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-blue-200 rounded w-1/3"></div>
+                          <div className="h-4 bg-blue-200 rounded w-1/2"></div>
+                        </div>
+                        <p className="text-sm text-blue-600 mt-2">
+                          Loading photo delivery data...
+                        </p>
+                      </div>
+                    ) : photoDelivery ? (
+                      <div className="space-y-4">
+                        {/* Drive Link as "Xem ảnh" Button */}
+                        {photoDelivery.driveLink && (
+                          <div>
+                            <button
+                              onClick={() =>
+                                handleDriveLinkClick(photoDelivery.driveLink!)
+                              }
+                              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm text-sm font-medium transition-colors"
+                              title="Open photo gallery"
+                            >
+                              <Camera className="h-4 w-4 mr-2" />
+                              Xem ảnh
+                              <ExternalLink className="h-4 w-4 ml-2" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {photoDelivery.notes && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Delivery Notes:
+                            </label>
+                            <div className="bg-white p-3 rounded-md border border-blue-200">
+                              <p className="text-sm text-gray-900">
+                                {photoDelivery.notes}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Show message if no drive link */}
+                        {!photoDelivery.driveLink && (
+                          <div className="text-center py-2">
+                            <p className="text-sm text-gray-500">
+                              Photos not yet uploaded by photographer
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <Camera className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                        <p className="text-sm text-gray-500">
+                          No photo delivery information available for this
+                          booking
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Resolution Notes */}
               {complaint.resolutionNotes && (
@@ -399,7 +508,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
           )}
 
-          {/* Footer với Actions */}
+          {/* Footer with Actions */}
           <div className="mt-6 border-t border-gray-200 pt-4">
             {showActions && complaint && (
               <>
@@ -461,7 +570,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               </>
             )}
 
-            {/* Close button only khi không có actions */}
+            {/* Close button only when no actions */}
             {!showActions && (
               <div className="flex justify-end">
                 <button

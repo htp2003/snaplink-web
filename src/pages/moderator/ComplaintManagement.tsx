@@ -1,3 +1,4 @@
+// Updated ComplaintManagement.tsx
 import React from "react";
 import {
   AlertTriangle,
@@ -10,7 +11,6 @@ import { useSimpleComplaintManagement } from "../../hooks/moderator/SimpleCompla
 import ComplaintTable from "../../components/moderator/ComplaintManagement/ComplaintTable";
 import ComplaintFilters from "../../components/moderator/ComplaintManagement/ComplaintFilters";
 import ComplaintDetailModal from "../../components/moderator/ComplaintManagement/ComplaintDetailModal";
-// import SimpleModalTest from '../../components/moderator/ComplaintManagement/SimpleModalTest';
 import ResolveComplaintModal from "../../components/moderator/ComplaintManagement/ResolveComplaintModal";
 import { ComplaintStatus } from "../../types/moderator/ComplaintManagement.types";
 import { complaintService } from "../../services/complaintService";
@@ -21,6 +21,7 @@ const ComplaintManagement: React.FC = () => {
     // Data
     complaints,
     complaintDetail,
+    photoDelivery,
     complaintTypes,
     complaintStatuses,
     pagination,
@@ -227,7 +228,7 @@ const ComplaintManagement: React.FC = () => {
         loading={loading.list}
       />
 
-      {/* Table - Updated: loại bỏ onResolve và onUpdateStatus từ table */}
+      {/* Table */}
       <ComplaintTable
         complaints={complaints}
         loading={loading.list}
@@ -236,12 +237,14 @@ const ComplaintManagement: React.FC = () => {
         pageSize={pagination.pageSize}
       />
 
-      {/* Detail Modal - Updated: thêm onResolve và onUpdateStatus */}
+      {/* Detail Modal - Updated: pass photoDelivery data */}
       <ComplaintDetailModal
         complaint={complaintDetail}
+        photoDelivery={photoDelivery}
         isOpen={modals.detail}
         onClose={() => setDetailModal(false)}
         loading={loading.detail}
+        photoDeliveryLoading={loading.photoDelivery}
         onUpdateStatus={updateComplaintStatus}
         onAssignModerator={assignModerator}
       />
@@ -332,8 +335,6 @@ const ComplaintManagement: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Detail Modal */}
     </div>
   );
 };

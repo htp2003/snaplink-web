@@ -1,6 +1,11 @@
+// Updated SimpleComplaintManagement.hooks.ts with better debugging
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { complaintService } from "../../services/complaintService";
+import {
+  photoDeliveryService,
+  PhotoDeliveryResponse,
+} from "../../services/photoDeliveryService";
 import {
   ComplaintResponse,
   ComplaintDetailResponse,
@@ -14,6 +19,8 @@ export const useSimpleComplaintManagement = () => {
   const [complaints, setComplaints] = useState<ComplaintResponse[]>([]);
   const [complaintDetail, setComplaintDetail] =
     useState<ComplaintDetailResponse | null>(null);
+  const [photoDelivery, setPhotoDelivery] =
+    useState<PhotoDeliveryResponse | null>(null);
   const [complaintTypes, setComplaintTypes] = useState<string[]>([]);
   const [complaintStatuses, setComplaintStatuses] = useState<string[]>([]);
   const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(
@@ -39,6 +46,7 @@ export const useSimpleComplaintManagement = () => {
     update: false,
     types: false,
     statuses: false,
+    photoDelivery: false,
   });
 
   // Modal states
@@ -78,15 +86,75 @@ export const useSimpleComplaintManagement = () => {
     }
   };
 
+  // Fetch photo delivery data with better debugging
+  const fetchPhotoDelivery = async (bookingId: number) => {
+    console.log("🔍 Fetching photo delivery for booking ID:", bookingId);
+
+    try {
+      setLoading((prev) => ({ ...prev, photoDelivery: true }));
+
+      const response = await photoDeliveryService.getPhotoDeliveryByBooking(
+        bookingId
+      );
+
+      console.log("📸 Photo delivery response:", response);
+
+      if (response) {
+        console.log("✅ Photo delivery found:", {
+          id: response.photoDeliveryId,
+          driveLink: response.driveLink,
+          status: response.status,
+          photoCount: response.photoCount,
+        });
+        setPhotoDelivery(response);
+      } else {
+        console.log("❌ No photo delivery found for booking:", bookingId);
+        setPhotoDelivery(null);
+      }
+    } catch (error: any) {
+      console.error("💥 Photo delivery fetch error:", error);
+      console.error("Error details:", {
+        status: error?.response?.status,
+        message: error?.response?.data?.message,
+        url: error?.config?.url,
+      });
+      setPhotoDelivery(null);
+
+      // Show error toast only for real errors (not 404)
+      if (error?.response?.status !== 404) {
+        toast.error("Failed to fetch photo delivery information");
+      }
+    } finally {
+      setLoading((prev) => ({ ...prev, photoDelivery: false }));
+    }
+  };
+
   // Fetch complaint detail
   const fetchComplaintDetail = async (id: number) => {
     try {
       setLoading((prev) => ({ ...prev, detail: true }));
 
+      console.log("🔍 Fetching complaint detail for ID:", id);
       const response = await complaintService.getComplaintDetail(id);
 
+      console.log("📋 Complaint detail response:", response);
       setComplaintDetail(response);
       setSelectedComplaintId(id);
+
+      // If complaint has booking, fetch photo delivery
+      if (response.bookingId) {
+        console.log(
+          "📷 Complaint has booking ID:",
+          response.bookingId,
+          "- fetching photo delivery"
+        );
+        await fetchPhotoDelivery(response.bookingId);
+      } else {
+        console.log(
+          "❌ No booking ID in complaint, skipping photo delivery fetch"
+        );
+        setPhotoDelivery(null);
+      }
     } catch (error: any) {
       console.error("fetchComplaintDetail error:", error);
       toast.error(error?.message || "Failed to fetch complaint details");
@@ -168,9 +236,12 @@ export const useSimpleComplaintManagement = () => {
   const setDetailModal = (open: boolean, complaintId?: number) => {
     setModals((prev) => ({ ...prev, detail: open }));
     if (open && complaintId) {
+      console.log("🔄 Opening detail modal for complaint:", complaintId);
       fetchComplaintDetail(complaintId);
     } else if (!open) {
+      console.log("❌ Closing detail modal, clearing data");
       setComplaintDetail(null);
+      setPhotoDelivery(null);
       setSelectedComplaintId(null);
     }
   };
@@ -219,6 +290,7 @@ export const useSimpleComplaintManagement = () => {
     // Data
     complaints,
     complaintDetail,
+    photoDelivery,
     complaintTypes,
     complaintStatuses,
     pagination,
