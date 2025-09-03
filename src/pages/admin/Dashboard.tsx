@@ -1,4 +1,4 @@
-// pages/admin/Dashboard.tsx - SIMPLIFIED VERSION
+// pages/admin/Dashboard.tsx - SIMPLIFIED VERSION (Without Revenue Chart)
 import React from "react";
 import {
   Users,
@@ -264,25 +264,9 @@ const AdminDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Charts Section - Only Revenue Chart */}
+      {/* Charts Section - Top Performers Only (Revenue Chart Removed) */}
       {charts && (
         <>
-          {/* Revenue Chart Only */}
-          <div className="grid grid-cols-1 gap-6">
-            <ChartContainer
-              title="Doanh thu theo thời gian"
-              data={charts.revenueChart.map((item) => ({
-                name: new Date(item.date).toLocaleDateString("vi-VN"),
-                value: item.revenue,
-                label: `${formatCurrency(item.revenue)} (${item.transactions
-                  } giao dịch)`,
-              }))}
-              type="line"
-              color="#10B981"
-              height={300}
-            />
-          </div>
-
           {/* Top Performers */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top Photographers */}

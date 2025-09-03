@@ -1,4 +1,4 @@
-// src/services/contentModerationService.ts - UPDATED FOR RATING MANAGEMENT
+// src/services/contentModerationService.ts - FIXED EVENT IMAGES
 
 import { authService } from "./authService";
 import {
@@ -57,7 +57,7 @@ class ContentModerationService {
         console.log("Failed to get location images:", error);
       }
 
-      // 3. Get event images (all)
+      // 3. Get event images (all) - FIXED
       try {
         const eventImages = await this.getEventImages();
         console.log("Event images:", eventImages.length);
@@ -286,7 +286,7 @@ class ContentModerationService {
     bookingId: number
   ): Promise<BookingInfo | null> {
     try {
-      console.log("🔍 Fetching booking details for:", bookingId);
+      console.log("Fetching booking details for:", bookingId);
 
       // Try multiple possible Booking API endpoints
       const possibleEndpoints = [
@@ -298,7 +298,7 @@ class ContentModerationService {
 
       for (const endpoint of possibleEndpoints) {
         try {
-          console.log("🔄 Trying endpoint:", endpoint);
+          console.log("Trying endpoint:", endpoint);
 
           const response = await fetch(endpoint, {
             headers: this.getHeaders(),
@@ -306,7 +306,7 @@ class ContentModerationService {
 
           if (response.ok) {
             const booking = await response.json();
-            console.log("✅ Booking API success:", booking);
+            console.log("Booking API success:", booking);
 
             return {
               id: booking.id,
@@ -345,14 +345,14 @@ class ContentModerationService {
                 : undefined,
             };
           } else {
-            console.log("❌ Endpoint failed:", endpoint, response.status);
+            console.log("Endpoint failed:", endpoint, response.status);
           }
         } catch (endpointError) {
-          console.log("💥 Endpoint error:", endpoint, endpointError);
+          console.log("Endpoint error:", endpoint, endpointError);
         }
       }
 
-      console.log("⚠️ All booking endpoints failed, returning mock data");
+      console.log("All booking endpoints failed, returning mock data");
 
       // Return basic mock data if all endpoints fail
       return {
@@ -374,7 +374,7 @@ class ContentModerationService {
         },
       };
     } catch (error) {
-      console.log("💥 Could not fetch booking details:", error);
+      console.log("Could not fetch booking details:", error);
       return null;
     }
   }
@@ -510,7 +510,7 @@ class ContentModerationService {
     }
   }
 
-  // ===== ENHANCED EVENT METHODS =====
+  // ===== ENHANCED EVENT METHODS - FIXED TO USE IMAGES FROM API =====
   async getEventsForModeration(
     pagination: PaginationParams = { page: 1, pageSize: 50 },
     filters: ModerationFilters = {}
@@ -527,13 +527,15 @@ class ContentModerationService {
       }
 
       const data = await response.json();
-      const events = Array.isArray(data) ? data : [];
+
+      // Handle the API response structure - check if data is nested
+      const events = Array.isArray(data) ? data : data?.data ? data.data : [];
 
       console.log("Raw event data sample:", events[0]);
 
-      // Transform to our format using the actual API response structure
+      // Transform to our format using the actual API response structure - FIXED
       const items: EventModerationItem[] = events.map((event: any) => ({
-        id: event.id,
+        id: event.eventId || event.id,
         locationId: event.locationId,
         locationName:
           event.location?.name || event.locationName || "Unknown Location",
@@ -544,15 +546,31 @@ class ContentModerationService {
         discountedPrice: event.discountedPrice,
         originalPrice: event.originalPrice,
         maxPhotographers: event.maxPhotographers || 0,
-        images: [], // Will be fetched separately when needed
-        applicationsCount: event.applicationsCount || 0,
-        bookingsCount: event.bookingsCount || 0,
+        // FIXED: Use images from API response
+        images: Array.isArray(event.images)
+          ? event.images.map((img: any) => ({
+              id: img.id,
+              url: img.url,
+              userId: img.userId,
+              photographerId: img.photographerId,
+              locationId: img.locationId,
+              eventId: img.eventId,
+              isPrimary: img.isPrimary,
+              caption: img.caption,
+              createdAt: img.createdAt,
+              isDelete: img.isDelete,
+            }))
+          : [],
+        applicationsCount:
+          event.applicationsCount || event.approvedPhotographersCount || 0,
+        bookingsCount: event.bookingsCount || event.totalBookingsCount || 0,
         status: event.status || "active",
         createdAt: event.createdAt || new Date().toISOString(),
         updatedAt: event.updatedAt || new Date().toISOString(),
       }));
 
-      console.log("Transformed events:", items.length);
+      console.log("Transformed events with images:", items.length);
+      console.log("Sample event with images:", items[0]?.images?.length);
 
       return {
         items,
@@ -814,8 +832,11 @@ class ContentModerationService {
     }
   }
 
+  // ===== FIXED EVENT IMAGES METHOD =====
   private async getEventImages(): Promise<ImageItem[]> {
     try {
+      console.log("Fetching events with images...");
+
       const eventsResponse = await fetch(`${API_BASE}/LocationEvent`, {
         headers: this.getHeaders(),
       });
@@ -825,37 +846,50 @@ class ContentModerationService {
         return [];
       }
 
-      const events = await eventsResponse.json();
-      if (!Array.isArray(events)) return [];
+      const data = await eventsResponse.json();
 
-      console.log(`Found events: ${events.length}, getting images for all`);
+      // Handle the API response structure - check if data is nested
+      const events = Array.isArray(data) ? data : data?.data ? data.data : [];
+
+      console.log(`Found events: ${events.length}`);
 
       const allEventImages: ImageItem[] = [];
 
+      // FIXED: Use images directly from the API response instead of making separate calls
       for (const event of events) {
-        const eventId = event.id || event.eventId || event.locationEventId;
+        const eventId = event.eventId || event.id;
 
-        if (!eventId) continue;
+        if (!eventId || !event.images) continue;
 
         try {
-          console.log(`Getting images for event ${eventId}`);
-          const imageResponse = await fetch(
-            `${API_BASE}/Image/event/${eventId}`,
-            { headers: this.getHeaders() }
-          );
+          console.log(`Processing images for event ${eventId}`);
 
-          if (imageResponse.ok) {
-            const images = await imageResponse.json();
-            if (Array.isArray(images)) {
-              console.log(`Found ${images.length} images for event ${eventId}`);
-              allEventImages.push(...images);
-            }
+          // Use images directly from the event response
+          if (Array.isArray(event.images) && event.images.length > 0) {
+            const eventImages: ImageItem[] = event.images.map((img: any) => ({
+              id: img.id,
+              url: img.url,
+              userId: img.userId,
+              photographerId: img.photographerId,
+              locationId: img.locationId,
+              eventId: img.eventId,
+              isPrimary: img.isPrimary,
+              caption: img.caption,
+              createdAt: img.createdAt,
+              isDelete: img.isDelete,
+            }));
+
+            console.log(
+              `Found ${eventImages.length} images for event ${eventId}`
+            );
+            allEventImages.push(...eventImages);
           }
         } catch (error) {
-          console.log(`Error getting images for event ${eventId}:`, error);
+          console.log(`Error processing images for event ${eventId}:`, error);
         }
       }
 
+      console.log("Total event images processed:", allEventImages.length);
       return allEventImages;
     } catch (error) {
       console.error("Error getting event images:", error);
@@ -899,9 +933,9 @@ class ContentModerationService {
         pendingPhotographers: photographers.totalCount || 0,
         pendingVenues: venues.totalCount || 0,
         pendingEvents: events.totalCount || 0,
-        pendingRatings: ratings.totalCount || 0, // Changed from pendingReviews
+        pendingRatings: ratings.totalCount || 0,
         flaggedImages: 3, // This would need a separate API endpoint
-        totalRatings: ratings.totalCount || 0, // New stat
+        totalRatings: ratings.totalCount || 0,
       };
     } catch (error) {
       console.error("Error fetching moderation stats:", error);
@@ -913,9 +947,9 @@ class ContentModerationService {
         pendingPhotographers: 12,
         pendingVenues: 5,
         pendingEvents: 3,
-        pendingRatings: 8, // Changed from pendingReviews
+        pendingRatings: 8,
         flaggedImages: 3,
-        totalRatings: 45, // New stat
+        totalRatings: 45,
       };
     }
   }

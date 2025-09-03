@@ -114,69 +114,69 @@ const TransactionManagement: React.FC = () => {
 
   // Hàm format đơn giản hơn, chuyển sang giờ VN (UTC+7)
   const formatDateTime = (dateTimeString: string): string => {
-    if (!dateTimeString) return '';
+    if (!dateTimeString) return "";
 
     const date = new Date(dateTimeString);
 
     // Kiểm tra date có hợp lệ không
     if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      return "Invalid Date";
     }
 
     // Chuyển sang giờ VN (UTC+7)
     const utc = date.getTime() + date.getTimezoneOffset() * 60000;
     const vnDate = new Date(utc + 7 * 60 * 60000);
 
-    return vnDate.toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
+    return vnDate.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     });
   };
 
   // VN timezone-aware helpers cho table displays
   const formatDateVN = (dateTimeString: string): string => {
-    if (!dateTimeString) return '';
+    if (!dateTimeString) return "";
 
     const date = new Date(dateTimeString);
 
     if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      return "Invalid Date";
     }
 
     // Chuyển sang giờ VN (UTC+7)
     const utc = date.getTime() + date.getTimezoneOffset() * 60000;
     const vnDate = new Date(utc + 7 * 60 * 60000);
 
-    return vnDate.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    return vnDate.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
   const formatTimeVN = (dateTimeString: string): string => {
-    if (!dateTimeString) return '';
+    if (!dateTimeString) return "";
 
     const date = new Date(dateTimeString);
 
     if (isNaN(date.getTime())) {
-      return 'Invalid Time';
+      return "Invalid Time";
     }
 
     // Chuyển sang giờ VN (UTC+7)
     const utc = date.getTime() + date.getTimezoneOffset() * 60000;
     const vnDate = new Date(utc + 7 * 60 * 60000);
 
-    return vnDate.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
+    return vnDate.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
     });
   };
 
@@ -271,7 +271,6 @@ const TransactionManagement: React.FC = () => {
           {formatCurrency(transaction.amount)}
         </div>
         <div className="text-xs text-gray-500">{transaction.currency}</div>
-
       </div>
     );
   };
@@ -311,7 +310,7 @@ const TransactionManagement: React.FC = () => {
     let success = false;
 
     switch (action) {
-      case "complete": // Changed from "approve" 
+      case "complete": // Changed from "approve"
         if (!billImageLink.trim()) {
           toast.error("Vui lòng cung cấp link hình ảnh hóa đơn");
           return;
@@ -383,10 +382,11 @@ const TransactionManagement: React.FC = () => {
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab("transactions")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "transactions"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "transactions"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
             >
               <div className="flex items-center">
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -406,10 +406,11 @@ const TransactionManagement: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("withdrawals")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "withdrawals"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "withdrawals"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
             >
               <div className="flex items-center">
                 <Wallet className="w-4 h-4 mr-2" />
@@ -473,10 +474,11 @@ const TransactionManagement: React.FC = () => {
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
               <div
-                className={`absolute top-0 left-0 w-1 h-full ${transactionStats.netCashFlow >= 0
-                  ? "bg-green-500"
-                  : "bg-red-500"
-                  }`}
+                className={`absolute top-0 left-0 w-1 h-full ${
+                  transactionStats.netCashFlow >= 0
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                }`}
               ></div>
               <div className="flex items-center justify-between">
                 <div>
@@ -484,10 +486,11 @@ const TransactionManagement: React.FC = () => {
                     📊 Dòng tiền ròng
                   </p>
                   <p
-                    className={`text-2xl font-bold ${transactionStats.netCashFlow >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                      }`}
+                    className={`text-2xl font-bold ${
+                      transactionStats.netCashFlow >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
                   >
                     {transactionStats.netCashFlow >= 0 ? "+" : ""}
                     {formatCurrency(transactionStats.netCashFlow)}
@@ -498,16 +501,18 @@ const TransactionManagement: React.FC = () => {
                   </p>
                 </div>
                 <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center ${transactionStats.netCashFlow >= 0
-                    ? "bg-green-100"
-                    : "bg-red-100"
-                    }`}
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                    transactionStats.netCashFlow >= 0
+                      ? "bg-green-100"
+                      : "bg-red-100"
+                  }`}
                 >
                   <DollarSign
-                    className={`w-6 h-6 ${transactionStats.netCashFlow >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                      }`}
+                    className={`w-6 h-6 ${
+                      transactionStats.netCashFlow >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
                   />
                 </div>
               </div>
@@ -949,12 +954,13 @@ const TransactionManagement: React.FC = () => {
                 return (
                   <tr
                     key={transaction.transactionId}
-                    className={`hover:bg-gray-50 ${direction === "in"
-                      ? "border-l-2 border-l-green-200"
-                      : direction === "out"
+                    className={`hover:bg-gray-50 ${
+                      direction === "in"
+                        ? "border-l-2 border-l-green-200"
+                        : direction === "out"
                         ? "border-l-2 border-l-red-200"
                         : "border-l-2 border-l-gray-200"
-                      }`}
+                    }`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">
@@ -1042,9 +1048,9 @@ const TransactionManagement: React.FC = () => {
                       <div className="text-sm font-medium">
                         {formatDateVN(transaction.createdAt)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      {/* <div className="text-xs text-gray-500">
                         {formatTimeVN(transaction.createdAt)}
-                      </div>
+                      </div> */}
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1086,8 +1092,8 @@ const TransactionManagement: React.FC = () => {
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {transactionFilters.searchTerm ||
-                  transactionFilters.status !== "all" ||
-                  transactionFilters.type !== "all"
+                transactionFilters.status !== "all" ||
+                transactionFilters.type !== "all"
                   ? "Thử thay đổi bộ lọc để xem kết quả khác"
                   : "Chưa có giao dịch nào được thực hiện"}
               </p>
@@ -1184,9 +1190,9 @@ const TransactionManagement: React.FC = () => {
                     <div className="text-sm font-medium">
                       {formatDateVN(withdrawal.requestedAt)}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    {/* <div className="text-xs text-gray-500">
                       {formatTimeVN(withdrawal.requestedAt)}
-                    </div>
+                    </div> */}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
@@ -1228,8 +1234,6 @@ const TransactionManagement: React.FC = () => {
                           </button>
                         </>
                       )}
-
-
                     </div>
                   </td>
                 </tr>
@@ -1245,7 +1249,7 @@ const TransactionManagement: React.FC = () => {
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {withdrawalFilters.searchTerm ||
-                  withdrawalFilters.status !== "all"
+                withdrawalFilters.status !== "all"
                   ? "Thử thay đổi bộ lọc để xem kết quả khác"
                   : "Chưa có yêu cầu rút tiền nào"}
               </p>
@@ -1305,10 +1309,11 @@ const TransactionManagement: React.FC = () => {
             <button
               key={page}
               onClick={() => handleTransactionPageChange(page)}
-              className={`px-3 py-1 text-sm rounded-md ${page === transactionCurrentPage
-                ? "bg-blue-500 text-white"
-                : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`px-3 py-1 text-sm rounded-md ${
+                page === transactionCurrentPage
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {page}
             </button>
@@ -1368,10 +1373,11 @@ const TransactionManagement: React.FC = () => {
             <button
               key={page}
               onClick={() => handleWithdrawalPageChange(page)}
-              className={`px-3 py-1 text-sm rounded-md ${page === withdrawalCurrentPage
-                ? "bg-blue-500 text-white"
-                : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`px-3 py-1 text-sm rounded-md ${
+                page === withdrawalCurrentPage
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {page}
             </button>
@@ -1400,14 +1406,14 @@ const TransactionManagement: React.FC = () => {
       direction === "in"
         ? "bg-green-100"
         : direction === "out"
-          ? "bg-red-100"
-          : "bg-gray-100";
+        ? "bg-red-100"
+        : "bg-gray-100";
     const textColor =
       direction === "in"
         ? "text-green-800"
         : direction === "out"
-          ? "text-red-800"
-          : "text-gray-800";
+        ? "text-red-800"
+        : "text-gray-800";
     const symbol = CashFlowSymbolMap[direction];
 
     return (
@@ -1459,25 +1465,26 @@ const TransactionManagement: React.FC = () => {
                     {direction === "in"
                       ? "Tăng số dư hệ thống"
                       : direction === "out"
-                        ? "Giảm số dư hệ thống"
-                        : "Không thay đổi số dư"}
+                      ? "Giảm số dư hệ thống"
+                      : "Không thay đổi số dư"}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">Ảnh hưởng</div>
                 </div>
                 <div className="text-center">
                   <div
-                    className={`text-lg font-medium ${direction === "in"
-                      ? "text-green-600"
-                      : direction === "out"
+                    className={`text-lg font-medium ${
+                      direction === "in"
+                        ? "text-green-600"
+                        : direction === "out"
                         ? "text-red-600"
                         : "text-gray-600"
-                      }`}
+                    }`}
                   >
                     {direction === "in"
                       ? "↗ Cash In"
                       : direction === "out"
-                        ? "↘ Cash Out"
-                        : "⇄ Internal"}
+                      ? "↘ Cash Out"
+                      : "⇄ Internal"}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">Phân loại</div>
                 </div>
@@ -1601,24 +1608,24 @@ const TransactionManagement: React.FC = () => {
                 {t.type === "Purchase"
                   ? "Khách hàng thanh toán → Tiền vào hệ thống"
                   : t.type === "PhotographerFee"
-                    ? "Hệ thống trả phí → Nhiếp ảnh gia"
-                    : t.type === "VenueFee"
-                      ? "Hệ thống trả phí → Chủ địa điểm"
-                      : t.type === "PlatformFee"
-                        ? "Thu phí nền tảng → Vào hệ thống"
-                        : t.type === "Refund"
-                          ? "Hoàn tiền → Ra khỏi hệ thống"
-                          : t.type === "Deposit"
-                            ? "User nạp tiền → Vào hệ thống"
-                            : t.type === "Withdrawal"
-                              ? "User rút tiền → Ra khỏi hệ thống"
-                              : t.type === "EscrowHold"
-                                ? "Chuyển tiền sang trạng thái giữ"
-                                : t.type === "EscrowRelease"
-                                  ? "Giải phóng tiền từ trạng thái giữ"
-                                  : t.type === "EscrowRefund"
-                                    ? "Hoàn tiền từ escrow → Ra khỏi hệ thống"
-                                    : "Giao dịch nội bộ"}
+                  ? "Hệ thống trả phí → Nhiếp ảnh gia"
+                  : t.type === "VenueFee"
+                  ? "Hệ thống trả phí → Chủ địa điểm"
+                  : t.type === "PlatformFee"
+                  ? "Thu phí nền tảng → Vào hệ thống"
+                  : t.type === "Refund"
+                  ? "Hoàn tiền → Ra khỏi hệ thống"
+                  : t.type === "Deposit"
+                  ? "User nạp tiền → Vào hệ thống"
+                  : t.type === "Withdrawal"
+                  ? "User rút tiền → Ra khỏi hệ thống"
+                  : t.type === "EscrowHold"
+                  ? "Chuyển tiền sang trạng thái giữ"
+                  : t.type === "EscrowRelease"
+                  ? "Giải phóng tiền từ trạng thái giữ"
+                  : t.type === "EscrowRefund"
+                  ? "Hoàn tiền từ escrow → Ra khỏi hệ thống"
+                  : "Giao dịch nội bộ"}
               </p>
             </div>
           </div>
@@ -2032,7 +2039,8 @@ const TransactionManagement: React.FC = () => {
                   placeholder="https://example.com/images/bill-proof.jpg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Nhập link hình ảnh chứng từ chuyển tiền làm bằng chứng hoàn thành
+                  Nhập link hình ảnh chứng từ chuyển tiền làm bằng chứng hoàn
+                  thành
                 </p>
               </div>
             )}
@@ -2071,10 +2079,11 @@ const TransactionManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleWithdrawalAction}
-                className={`px-4 py-2 text-white rounded-md flex items-center ${action === "complete"
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-red-500 hover:bg-red-600"
-                  }`}
+                className={`px-4 py-2 text-white rounded-md flex items-center ${
+                  action === "complete"
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
               >
                 {action === "complete" && (
                   <>
