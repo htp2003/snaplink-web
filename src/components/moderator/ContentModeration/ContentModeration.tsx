@@ -380,7 +380,7 @@ const PhotographerListCard: React.FC<{
               </h3>
               <p className="text-sm text-gray-500">{photographer.email}</p>
             </div>
-            {photographer.verificationStatus && (
+            {/* {photographer.verificationStatus && (
               <span
                 className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(
                   photographer.verificationStatus
@@ -388,7 +388,7 @@ const PhotographerListCard: React.FC<{
               >
                 {photographer.verificationStatus}
               </span>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center justify-between mb-2">
@@ -1292,12 +1292,12 @@ const ContentModeration: React.FC = () => {
         icon: Star, // Changed from MessageSquare
         count: ratings.length, // Changed from reviews.length
       },
-      {
-        key: "photographers",
-        label: "Photographers",
-        icon: Users,
-        count: photographers.length,
-      },
+      // {
+      //   key: "photographers",
+      //   label: "Photographers",
+      //   icon: Users,
+      //   count: photographers.length,
+      // },
       { key: "venues", label: "Venues", icon: MapPin, count: venues.length },
       { key: "events", label: "Events", icon: Calendar, count: events.length },
     ];
